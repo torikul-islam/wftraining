@@ -1,0 +1,1255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="shortcut icon" href="data:image/x-icon;," type="image/x-icon">
+    <title>Webfitness Trainingroom</title>
+    <link href="https://use.typekit.net/nyt6vlx.css" rel="stylesheet" />
+    <script src="https://kit.fontawesome.com/40a863b9c7.js" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="https://trainingroomfiles.s3-us-west-2.amazonaws.com/wfIcons/wfIcon18.10.css" crossOrigin="anonymous">
+    <link rel="stylesheet" href="https://trainingroomfiles.s3-us-west-2.amazonaws.com/HtmlPlugins/apDatePicker/ap.min.css" crossOrigin="anonymous">
+    <style>
+        video{
+            pointer-events: none;
+        }
+        .container{
+            padding: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="wrapContainer">
+        <div class="flowContentParent">
+            <div class="flowContentLoader"></div>
+            <ul class="bgSlider" data-count="10"></ul>
+        </div>
+        <div class="flowContent">
+            <div id="flow-fatal" class="flow whiteTransparentBG" style="display:none">
+                <div style="vertical-align: middle; text-align: left; width: 40%; margin: 10em 30% 10em 30%;">
+                    <h1>Fatal error</h1>
+                    <p>An error was thrown that should not occur in ordinary use. This should be considered a fatal error for testing and canary purposes.</p>
+                    <p>This error will ordinarily be muffled, but you should consider removing this code if you are building an app based on this demo.</p>
+                    <code id="stack"></code>
+                </div>
+            </div>
+
+            <!-- Failure card if meeting is invalid -->
+            <div id="flow-failed-meeting" class="flow whiteTransparentBG" style="display:none">
+                <div class="container">
+                    <form id="form-failed-meeting">
+                        <div class="card border-warning mb-3" style="max-width: 20rem;">
+                            <div id="failed-meeting" class="card-header"></div>
+                            <div class="card-body">
+                                <h4 id="failed-meeting-title" class="card-title">Unable to find meeting</h4>
+                                <p id="failed-meeting-text" class="card-text">There was an issue finding that meeting. The meeting may have already ended, or your authorization may have expired.</p>
+                                <small id="failed-meeting-error" class="text-muted"></small>
+                            </div>
+                        </div>
+                        <button class="btn btn-lg btn-outline-warning btn-block" type="submit">OK</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Prompt for permission to get access to device labels -->
+            <div id="flow-need-permission" class="flow whiteTransparentBG" style="display:none">
+                <div class="container">
+                    <form id="form-need-permission">
+                        <div class="card border-info mb-3" style="max-width: 20rem;">
+                            <div class="card-header">Permissions check</div>
+                            <div class="card-body">
+                                <h4 class="card-title">Please allow access to your camera and microphone</h4>
+                                <p class="card-text">In order to select media devices, we need to do a quick permissions check of your mic and camera. When the pop-up appears, choose <b>Allow</b>.</p>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Device management and preview screen -->
+            <div id="flow-devices" class="flow whiteTransparentBG" style="display:none">
+                <div class="container">
+                    <form id="form-devices">
+                        <h1 class="h3 mb-3 font-weight-normal text-center mdlHide">Select devices</h1>
+                        <div class="row mt-3">
+                            <div class="col-12 col-sm-8">
+                                <label for="audio-input block">Microphone</label>
+                                <select id="audio-input" class="custom-select" style="width:100%"></select>
+                            </div>
+
+                            <div class="text-center col-sm-4 d-sm-block">
+                                <label>Preview</label>
+                                <div class="w-100 progress" style="margin-top:0.75rem">
+                                    <div id="audio-preview" class="progress-bar bg-success" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div id="voice-focus-setting" class="col-12 col-sm-8 hidden">
+                                <input autocomplete="off" type="checkbox" id="add-voice-focus"></input>
+                                <label style="margin-left: 0.5em" for="voice-focus-setting block">Add Voice Focus</label>
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-12 col-sm-8">
+                                <label for="video-input block">Camera</label>
+                                <select id="video-input" class="custom-select" style="width:100%"></select>
+                            </div>
+                            <div class="col-sm-4 text-center d-sm-block video-preview">
+                                <video id="video-preview" class="w-100 h-100" style="max-width:137px;max-height:82px;border-radius:8px"></video>
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-12 col-sm-8">
+                                <select id="video-input-quality" class="custom-select" style="width:100%">
+                                    <option value="360p">360p (nHD) @ 15 fps (600 Kbps max)</option>
+                                    <option value="540p" selected>540p (qHD) @ 15 fps (1.4 Mbps max)</option>
+                                    <option value="720p">720p (HD) @ 15 fps (1.4 Mbps max)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-12 col-sm-8">
+                                <label for="audio-output block">Speaker</label>
+                                <select id="audio-output" class="custom-select" style="width:100%"></select>
+                            </div>
+                            <div class="col-sm-4">
+                                <button id="button-test-sound" class="btn btn-outline-secondary btn-block h-50 d-sm-block" style="margin-top:2rem">Test</button>
+                            </div>
+                        </div>
+
+                        <div class="row mt-3">
+                            <div class="col-lg">
+                                <button id="joinButton" class="btn btn-lg btn-primary btn-block" type="submit">Join</button>
+                            </div>
+                        </div>
+                        <div class="hide row mt-3">
+                            <div class="col-lg">
+                                <p>Ready to join meeting <b><span id="info-meeting"></span></b> as <b><span id="info-name"></span></b>.</p>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="progress-join" class="w-100 progress progress-hidden">
+                        <div class="w-100 progress-bar progress-bar-striped progress-bar-animated" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- In-meeting screen -->
+            <div id="flow-meeting" class="flow offwhiteBG dflxDiv w-100 h-100" style="display:none">
+                <audio id="meeting-audio" style="display:none"></audio>
+                <div id="meeting-container" class="w-100 h-100" style="display:flex; flex-flow:column">
+                    <div id="roster-tile-container" class="dflxDiv w-100 h-100" style="flex: unset;">
+                        <div class="leftDiv w300 h-100 flx300 jsLeftCol">
+                            <div class="flexdiv">
+                                <div class="flex-stack">
+                                    <div class="flexHeader darkgreyBG jsLeftheader">
+                                        <div class="dflxDiv h-42">
+                                            <div class="header1 dflxDiv aiCenter wCol">
+                                                <div class="dflxDiv aiCenter">
+                                                    <button id="button-meeting-leave" type="button" class="btn btn-danger btn-square btn-ico m-2 mr5 jsTooltip" title="Exit Workout">
+                                                        <i class="wf icon-workout-finished"></i>
+                                                    </button>
+                                                    <div class="logo"><img src="https://trainingroomfiles.s3-us-west-2.amazonaws.com/webfitness_logo_white_gold.png" alt="WebFitness"></div>
+                                                </div>
+                                                <div class="dflxDiv showOnlyInbWithoutCoach aiCenter mlr5 fx245 hide">
+                                                    <div class="dflxDiv aiCenter mr5 flxcolumn">
+                                                        <span class="mr5 text-theme fz10">Coaching</span>
+                                                        <div class="onoffswitch xs2">
+                                                            <input type="checkbox" name="onoffswitch" class="onoffswitch-checkbox" id="coachSwitch" checked="true">
+                                                            <label class="noFormat onoffswitch-label jsaddCheck" for="coachSwitch">
+                                                                <span class="onoffswitch-inner" data-onText="On" data-offText="Off" data-onBG="success" data-offBG="danger">Off</span>
+                                                                <span class="onoffswitch-switch"></span>
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                    <div class="dflxDiv flxg2 flxcolumn offWhiteBG">
+                                                        <div class="dflxDiv flxg2 jsTrainerBar">
+                                                            <div id="bwc_mic_meter" class="soundMeter playerBar noPos">
+                                                                <div class="dflxDiv aiCenter">
+                                                                    <div class="sound_track clearfix">
+                                                                        <span class="w25 dflxDiv jcCenter">
+                                                                            <button id="bwc_muteTrainerMicVolume" title="Mute coach" class="jsTooltip" data-placement="bottom"><i class="fas fa-user"></i></button>
+                                                                            <button id="bwc_unMuteTrainerMicVolume" title="Unmute coach" class="jsTooltip hide">
+                                                                                <span class="fa-stack fa-xs">
+                                                                                    <i class="fas fa-user fa-stack-1x"></i>
+                                                                                    <i class="fas fa-ban fa-stack-2x" style="color:Tomato"></i>
+                                                                                </span>
+                                                                            </button>
+                                                                        </span>
+                                                                    </div>
+                                                                    <div class="jsTrainerControl flxg2">
+                                                                        <div id="bwc_selfvolume" class="plr5 button-inner video_controls jsplayControlDiv aiCenter transBG btnHoverBlack posRelative">
+                                                                            <button id="bwc_DecreaseTrainerMicVolume" title="Coach volume down" class="jsTooltip" data-placement="bottom"><i class="fas fa-volume-down"></i></button>
+                                                                            <input type="range" id="bwc_trainerMicVolumeBar" class="whiteThumbBlackTrack" min="0" max="1" step="0.05" value="0.5">
+                                                                            <button id="bwc_IncreaseTrainerMicVolume" title="Coach volume up" class="jsTooltip" data-placement="bottom"><i class="fas fa-volume-up"></i></button>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <div class="twopxSeprator"></div>
+                                                        </div>
+                                                        <div id="bwc_videoplayer_meter" class="dflxDiv flxg2 soundMeter nomar playerBar">
+                                                            <div class="dflxDiv flxg2 aiCenter">
+                                                                <div class="sound_track clearfix">
+                                                                    <span class="w25 dflxDiv jcCenter">
+                                                                        <button id="bwc_muteMemberMusicVolume" title="Mute music" class="jsTooltip">
+                                                                            <i class="fas fa-music"></i>
+                                                                        </button>
+                                                                        <button id="bwc_unMuteMemberMusicVolume" title="Unmute music" class="jsTooltip hide">
+                                                                            <span class="fa-stack fa-xs">
+                                                                                <i class="fas fa-music fa-stack-1x"></i>
+                                                                                <i class="fas fa-ban fa-stack-2x" style="color:Tomato"></i>
+                                                                            </span>
+                                                                        </button>
+                                                                    </span>
+                                                                </div>
+                                                                <div class="jsVidControl flxg2">
+                                                                    <div id="bwc_jsplayControlDiv" class="plr5 button-inner video_controls jsplayControlDiv aiCenter transBG btnHoverBlack posRelative">
+                                                                        <button id="bwc_DecreaseMemberMusicVolume" title="Music volume down" class="jsTooltip"><i class="fas fa-volume-down"></i></button>
+                                                                        <input type="range" id="bwc_memberMusicVolumeBar" class="whiteThumbBlackTrack" min="0" max="1" step="0.05" value="0.5">
+                                                                        <button id="bwc_IncreaseMemberMusicVolume" title="Music volume up" class="jsTooltip">
+                                                                            <i class="fas fa-volume-up"></i>
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="header2 dflxDiv aiCenter wCol hideIntrainer">
+                                                <h5 id="trainerName" class="nomar text-white fw500" data-attr="Jay Test: 10-05-2024"></h5>
+                                            </div>
+                                        </div>
+                                        <div class="dflxDiv bg-gray p5 jsWaitLoadingParent" style="display:none">
+                                            <div class="wloadingStatus"><i class="fa fa-spinner fa-spin mr5"></i> Please wait while we open and setup the workout room.</div>
+                                        </div>
+                                    </div>
+                                    <div class="flex-columns scrollBehavior">
+                                        <div class="singleVS2">
+                                            <div class="trainerDiv hCol">
+                                                <div class="w-100 h-100 dflxDiv jcCenter aiCenter ovh por">
+                                                    <div id='trainer-camera' class="trainerVideo jsTrainerVideo jsRotateVid">
+                                                        <video id="trainerVideo"></video>
+                                                    </div>
+                                                    <button id="trainerVidRotate" class="btn rotate_btn circleBase jsTooltip jsRotateClick jsControlBtn hideInmember" data-target=".jsRotateVid" title="Rotate Camera"><i class="fas fa-sync-alt"></i></button>
+                                                </div>
+                                            </div>
+                                            <div class="botDiv hCol">
+                                                <div class="flexdiv">
+                                                    <div class="flex-stack">
+                                                        <div class="flexHeader greyBG p2 jsLeftHeader2 hideInmember">
+                                                            <div class="controlsDiv">
+                                                                <div class="dflxDiv">
+                                                                    <div class="pauseBtnSpace">
+                                                                        <div class="button-inner jcCenter h100p plr2">
+                                                                            <button id="autopausevideo" title="Pause" class="nomar wauto jsTooltip"><i class="fas fa-2x fa-pause-circle"></i></button>
+                                                                            <button id="autoplayvideo" title="Play" class="hide wauto nomar jsTooltip"><i class="fas fa-2x fa-play-circle"></i></button>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div class="dflxDiv flxg2 flxcolumn">
+                                                                        <div class="dflxDiv flxg2 jsTrainerMicrophone">
+                                                                            <div id="trainer_mic_meter" class="soundMeter playerBar noPos">
+                                                                                <div class="dflxDiv aiCenter">
+                                                                                    <div class="sound_track clearfix">
+                                                                                        <span class="w25 dflxDiv jcCenter">
+                                                                                            <button id="muteTrainerMic" title="Mute trainer microphone" class="jsTooltip" data-placement="bottom"><i class="fas fa-microphone"></i></button>
+                                                                                            <button id="unMuteTrainerMic" title="Unmute trainer microphone" class="jsTooltip hide">
+                                                                                                <span class="fa-stack fa-xs">
+                                                                                                    <i class="fas fa-microphone fa-stack-1x"></i>
+                                                                                                    <i class="fas fa-ban fa-stack-2x" style="color:Tomato"></i>
+                                                                                                </span>
+                                                                                            </button>
+                                                                                        </span>
+                                                                                        <ul class="jsTooltip" title="Trainer Microphone">
+                                                                                            <li data-level="1"></li>
+                                                                                            <li data-level="3"></li>
+                                                                                            <li data-level="4"></li>
+                                                                                            <li data-level="8"></li>
+                                                                                            <li data-level="12"></li>
+                                                                                            <li data-level="16"></li>
+                                                                                            <li data-level="20"></li>
+                                                                                            <li data-level="24"></li>
+                                                                                            <li data-level="28"></li>
+                                                                                            <li data-level="32"></li>
+                                                                                            <li data-level="36"></li>
+                                                                                            <li data-level="40"></li>
+                                                                                            <li data-level="44"></li>
+                                                                                            <li data-level="48"></li>
+                                                                                            <li data-level="52"></li>
+                                                                                            <li data-level="56"></li>
+                                                                                            <li data-level="60"></li>
+                                                                                            <li data-level="64"></li>
+                                                                                            <li data-level="68"></li>
+                                                                                            <li data-level="72"></li>
+                                                                                            <li data-level="76"></li>
+                                                                                            <li data-level="80"></li>
+                                                                                        </ul>
+                                                                                    </div>
+                                                                                    <div class="jsTrainerControl flxg2">
+                                                                                        <div id="tranerMic" class="plr5 button-inner video_controls selfOpenDiv aiCenter transBG btnHoverBlack">
+                                                                                            <button id="DecreaseTrainerMic" title="Microphone volume down" class="jsTooltip" data-placement="bottom"><i class="fas fa-volume-down"></i></button>
+                                                                                            <input type="range" id="trainerMicBar" class="whiteThumbBlackTrack" min="0" max="1" step="0.05" value="1">
+                                                                                            <button id="IncreaseTrainerMic" title="Microphone volume up" class="jsTooltip" data-placement="bottom"><i class="fas fa-volume-up"></i></button>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                            <div class="twopxSeprator"></div>
+                                                                        </div>
+                                                                        <div class="dflxDiv flxg2 jsTrainerBar hide">
+                                                                            <div id="mic_meter" class="soundMeter playerBar noPos">
+                                                                                <div class="dflxDiv aiCenter">
+                                                                                    <div class="sound_track clearfix">
+                                                                                        <span class="w25 dflxDiv jcCenter">
+                                                                                            <button id="muteTrainerMusicVolume" title="Mute All" class="jsTooltip" data-placement="bottom"><i class="fas fa-user"></i></button>
+                                                                                            <button id="unMuteTrainerMusicVolume" title="Unmute All" class="jsTooltip hide">
+                                                                                                <span class="fa-stack fa-xs">
+                                                                                                    <i class="fas fa-user fa-stack-1x"></i>
+                                                                                                    <i class="fas fa-ban fa-stack-2x" style="color:Tomato"></i>
+                                                                                                </span>
+                                                                                            </button>
+                                                                                        </span>
+                                                                                        <ul class="jsTooltip" title="Workout">
+                                                                                            <li data-level="1"></li>
+                                                                                            <li data-level="3"></li>
+                                                                                            <li data-level="4"></li>
+                                                                                            <li data-level="8"></li>
+                                                                                            <li data-level="12"></li>
+                                                                                            <li data-level="16"></li>
+                                                                                            <li data-level="20"></li>
+                                                                                            <li data-level="24"></li>
+                                                                                            <li data-level="28"></li>
+                                                                                            <li data-level="32"></li>
+                                                                                            <li data-level="36"></li>
+                                                                                            <li data-level="40"></li>
+                                                                                            <li data-level="44"></li>
+                                                                                            <li data-level="48"></li>
+                                                                                            <li data-level="52"></li>
+                                                                                            <li data-level="56"></li>
+                                                                                            <li data-level="60"></li>
+                                                                                            <li data-level="64"></li>
+                                                                                            <li data-level="68"></li>
+                                                                                            <li data-level="72"></li>
+                                                                                            <li data-level="76"></li>
+                                                                                            <li data-level="80"></li>
+                                                                                        </ul>
+                                                                                    </div>
+                                                                                    <div class="jsTrainerControl flxg2">
+                                                                                        <div id="selfvolume" class="plr5 button-inner video_controls jsplayControlDiv aiCenter transBG btnHoverBlack posRelative">
+                                                                                            <button id="DecreaseTrainerMusicVolume" title="Self Speaker Volume Down" class="jsTooltip" data-placement="bottom"><i class="fas fa-volume-down"></i></button>
+                                                                                            <input type="range" id="trainerMusicVolumeBar" class="whiteThumbBlackTrack" min="0" max="1" step="0.05" value="1">
+                                                                                            <button id="IncreaseTrainerMusicVolume" title="Self Speaker Volume Up" class="jsTooltip" data-placement="bottom"><i class="fas fa-volume-up"></i></button>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                            <div class="twopxSeprator"></div>
+                                                                        </div>
+                                                                        <div class="mTVcontrol hide">
+                                                                            <i class="wf icon-audio-listener fa-lg mr5"></i>
+                                                                            <input type="range" class="flxg2 greyThumbBlackTrack mr15" name="mTVrange" id="mTVrange" min="0" max="2" step="0.05" value="1" />
+                                                                            <i class="fas fa-music fa-lg"></i>
+                                                                        </div>
+                                                                        <div id="videoplayer_meter" class="dflxDiv flxg2 soundMeter nomar playerBar">
+                                                                            <div class="dflxDiv flxg2 aiCenter">
+                                                                                <div class="sound_track clearfix">
+                                                                                    <span class="w25 dflxDiv jcCenter">
+                                                                                        <button id="muteMemberMusicVolume" title="Mute member music" class="jsTooltip">
+                                                                                            <i class="fas fa-music"></i>
+                                                                                        </button>
+                                                                                        <button id="unMuteMemberMusicVolume" title="Unmute member music" class="jsTooltip hide">
+                                                                                            <span class="fa-stack fa-xs">
+                                                                                                <i class="fas fa-music fa-stack-1x"></i>
+                                                                                                <i class="fas fa-ban fa-stack-2x" style="color:Tomato"></i>
+                                                                                            </span>
+                                                                                        </button>
+                                                                                    </span>
+                                                                                    <ul class="jsTooltip" title="Member Music">
+                                                                                        <li data-level="1"></li>
+                                                                                        <li data-level="3"></li>
+                                                                                        <li data-level="4"></li>
+                                                                                        <li data-level="8"></li>
+                                                                                        <li data-level="12"></li>
+                                                                                        <li data-level="16"></li>
+                                                                                        <li data-level="20"></li>
+                                                                                        <li data-level="24"></li>
+                                                                                        <li data-level="28"></li>
+                                                                                        <li data-level="32"></li>
+                                                                                        <li data-level="36"></li>
+                                                                                        <li data-level="40"></li>
+                                                                                        <li data-level="44"></li>
+                                                                                        <li data-level="48"></li>
+                                                                                        <li data-level="52"></li>
+                                                                                        <li data-level="56"></li>
+                                                                                        <li data-level="60"></li>
+                                                                                        <li data-level="64"></li>
+                                                                                        <li data-level="68"></li>
+                                                                                        <li data-level="72"></li>
+                                                                                        <li data-level="76"></li>
+                                                                                        <li data-level="80"></li>
+                                                                                    </ul>
+                                                                                </div>
+                                                                                <div class="jsVidControl flxg2">
+                                                                                    <div id="jsplayControlDiv" class="plr5 button-inner video_controls jsplayControlDiv aiCenter transBG btnHoverBlack posRelative">
+                                                                                        <button id="DecreaseMemberMusicVolume" title="Member music volume down" class="jsTooltip"><i class="fas fa-volume-down"></i></button>
+                                                                                        <input type="range" id="memberMusicVolumeBar" class="whiteThumbBlackTrack" min="0" max="1" step="0.05" value="0.7">
+                                                                                        <button id="IncreaseMemberMusicVolume" title="Member music volume up" class="jsTooltip">
+                                                                                            <i class="fas fa-volume-up"></i>
+                                                                                        </button>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="flex-columns scrollBehavior jsexerciseVidParent">
+                                                            <div class="botVideo">
+                                                                <!-- CountDown Design Configurations New -->
+                                                                <div class="baseTimer hide" id="CountDown"></div>
+                                                                <span class="workoutNote" id="txtWorkoutNote">
+                                                                    This is test note for this workout.
+                                                                </span>
+                                                                <div class="botVideoParent" id="jsBotVidParent">
+                                                                    <video id="botVideo"></video>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="rightDiv dflxDiv flx1 h-100 mslideParent">
+                            <div class="membersDiv flx1 h-100">
+                                <div class="flexdiv">
+                                    <div class="flex-stack">
+                                        <div class="flexHeader darkgreyBG jsTileHeader">
+                                            <div class="dflxDiv jcSB p2 h-42">
+                                                <div class="dflxDiv aiCenter">
+                                                    <div class="btn-group spBtns mr5" role="group" aria-label="Toggle microphone">
+                                                        <button id="button-microphone" type="button" class="btn btn-theme eleIco micIco jsTooltip" title="Mute Microphone" data-tip="Mute Microphone" data-tipOpposite="Unmute Microphone"><i class="fas fa-microphone"></i></button>
+                                                        <div class="btn-group" role="group">
+                                                            <button id="button-microphone-drop" type="button" class="btn btn-theme dropdown-toggle jsTooltip jsDropClick" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" title="Select microphone"></button>
+                                                            <div id="dropdown-menu-microphone" class="dropdown-menu drpMenu" aria-labelledby="button-microphone-drop" x-placement="bottom-start" style="position: absolute; transform: translate3d(0px, 38px, 0px); top: 0px; left: 0px; will-change: transform;">
+                                                                <a class="dropdown-item" href="#">Default microphone</a>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="btn-group spBtns mr5" role="group" aria-label="Toggle camera">
+                                                        <button id="button-camera" type="button" class="btn btn-theme eleIco vidIco jsTooltip" title="Turn Camera Off" data-tip="Turn Camera Off" data-tipOpposite="Turn Camera On" disabled><i class="fas fa-video"></i></button>
+                                                        <div class="btn-group" role="group">
+                                                            <button id="button-camera-drop" type="button" class="btn btn-theme dropdown-toggle jsTooltip jsDropClick" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" title="Select camera"></button>
+                                                            <div id="dropdown-menu-camera" class="dropdown-menu drpMenu" aria-labelledby="button-camera-drop" x-placement="bottom-start" style="position: absolute; transform: translate3d(0px, 38px, 0px); top: 0px; left: 0px; will-change: transform;">
+                                                                <a class="dropdown-item" href="#">Default camera</a>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="btn-group spBtns mr5" role="group" aria-label="Toggle speaker">
+                                                        <button id="button-speaker" type="button" class="btn btn-theme eleIco volIco jsTooltip" title="Turn Speakers Off" data-tip="Turn Speakers Off" data-tipOpposite="Turn Speakers On"><i class="fas fa-volume-down"></i></button>
+                                                        <div class="btn-group" role="group">
+                                                            <button id="button-speaker-drop" type="button" class="btn btn-theme dropdown-toggle jsTooltip jsDropClick" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" title="Select speaker"></button>
+                                                            <div id="dropdown-menu-speaker" class="dropdown-menu drpMenu" aria-labelledby="button-speaker-drop" x-placement="bottom-start" style="position: absolute; transform: translate3d(0px, 38px, 0px); top: 0px; left: 0px; will-change: transform;">
+                                                                <a class="dropdown-item" href="#">Default speaker</a>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="btn-group spBtns mr5 hideIntrainer" role="group" aria-label="Record workout">
+                                                        <button id="button-recorder" type="button" class="btn btn-theme eleIco recIco jsBubblePop bPopMain">
+                                                            <i class="fas fa-stop-circle"></i>
+                                                            <span class="bPop recOn">
+                                                                <span class='fz24'>
+                                                                    <i class='fas fas-recOn'></i> Recording is <strong>On</strong>
+                                                                </span>
+                                                                <span>Workout is being recorded and can be sent to a coach for review and advise.</span>
+                                                            </span>
+                                                            <span class="bPop recOff">
+                                                                <span class='fz24'>
+                                                                    <i class='fas fas-recOff'></i> Recording is <strong>Off</strong>
+                                                                </span>
+                                                                <span>Click to start recording. When recording is on, your workout can be sent to a coach for review and advise.</span>
+                                                            </span>
+                                                        </button>
+                                                    </div>
+                                                    <div class="dflxDiv aiCenter mr5 flxcolumn hideInmember">
+                                                        <span class="mr5 text-theme fz10">Recording</span>
+                                                        <div class="onoffswitch xs2 jsBubblePop bPopMain">
+                                                            <input type="checkbox" name="onoffswitch" class="onoffswitch-checkbox" id="recordingSwitch" checked="false">
+                                                            <label class="noFormat onoffswitch-label jsaddCheck"  for="recordingSwitch">
+                                                                <span class="onoffswitch-inner" data-onText="On" data-offText="Off" data-onBG="success" data-offBG="danger">Off</span>
+                                                                <span class="onoffswitch-switch"></span>
+                                                            </label>
+                                                            <span class="bPop recOn">
+                                                                <span class='fz24'>
+                                                                    <i class='fas fas-recOn'></i> Recording is <strong>On</strong>
+                                                                </span>
+                                                                <span>Workout is being recorded and can be sent to a coach for review and advise.</span>
+                                                            </span>
+                                                            <span class="bPop recOff">
+                                                                <span class='fz24'>
+                                                                    <i class='fas fas-recOff'></i> Recording is <strong>Off</strong>
+                                                                </span>
+                                                                <span>Click to start recording. When recording is on, your workout can be sent to a coach for review and advise.</span>
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                    <div class="btn-group mr5 hide" role="group" aria-label="Apply filter">
+                                                        <button id="button-video-filter" type="button" class="btn btn-outline-theme jsTooltip" title="Apply filter"><i class="fas fa-adjust"></i></button>
+                                                        <div class="btn-group" role="group">
+                                                            <button id="button-video-filter-drop" type="button" class="btn btn-outline-theme dropdown-toggle jsTooltip jsDropClick" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" title="Select filter"></button>
+                                                            <div id="dropdown-menu-filter" class="dropdown-menu drpMenu" aria-labelledby="button-video-filter-drop" x-placement="bottom-start">
+                                                                <a class="dropdown-item" href="#">No filter</a>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <button id="button-video-stats" type="button" class="hide btn btn-outline-theme jsTooltip mr5" title="Toggle video WebRTC stats display" data-toggle="button" aria-pressed="false" autocomplete="off"><i class="fas fa-signal"></i></button>
+                                                </div>
+                                                <div class="dflxDiv aiCenter">
+                                                    <button id="button-meeting-end" type="button" class="hide btn btn-outline-danger jsTooltip jsControlBtn" title="End Workout"><i class="fas fa-power-off"></i></button>
+                                                    <button id="button-breakout-room-end" type="button" class="hide btn btn-outline-danger mr5 jsTooltip jsControlBtn" title="Close Private Chat"><i class="fas fa-times"></i></button>
+                                                    <button id="buttonRightPane" data-targetid="#rightPane" type="button" class="btn btn-theme jsTooltip jsControlBtn" title="Show hide Right Pane"><i class="fas fa-indent"></i></button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="flex-columns scrollBehavior">
+                                            <div id="tile-container" class="w-100 h-100">
+                                                <div id="tile-area" class="v-grid">
+                                                    <div class="video-tile vidTile" id="tile-16">
+                                                        <video class="video-tile-video" id="video-16" style="transform: rotateY(180deg) !important;"></video>
+                                                        <img src="https://trainingroomfiles.s3-us-west-2.amazonaws.com/ss.png" alt="WebFitness" class="hide mw-100" id="img-oneByOne-16" crossOrigin="anonymous"></img>
+                                                        <div class="video-tile-attendeeid hide" id="attendeeid-16"></div>
+                                                        <div class="dflxDiv jcSB vidiconBar w-100">
+                                                            <div class="dflxDiv">
+                                                                <button type="button" class="btn circleBase fullScreenIcon hideInTrainer mr5 jsfullScreenCompressIndication" id="fullScreen-16" data-bondingDiv="#st-fullScreen-16"></button>
+                                                                <button type="button" class="btn circleBase unmute jsMuteUnmuteIndication hideInmember" id="mute-16" data-bondingDiv="#st-mute-16"></button>
+                                                            </div>
+                                                            <span class="jsMuIndi circleBase unmute hideIntrainer" id="st-mute-16"></span>
+                                                            <span class="heartBeatCount" id="heartBeatCount-16"></span>
+                                                        </div>
+                                                        <div class="dflxDiv jcSB nameplate w-100">
+                                                            <div class="dflxDiv flxg2 aiCenter">
+                                                                <button class="btn-circle btn-info w30 mr5 jsOneOn1 jsTooltip" id="btnOneOn1-16" title="1-on-1"><i class="fas fa-user-friends"></i></button>
+                                                                <div class="dflxDiv flxcolumn flxg2">
+                                                                    <h6 id="customer-name-16"></h6>
+                                                                    <small><small id="customer-location-16"></small></small>
+                                                                </div>
+                                                            </div>
+                                                            <button type="button" class="video-tile-pause" id="video-pause-16"></button>
+                                                        </div>
+                                                    </div>
+                                                    <div class="video-tile vidTile" id="tile-0">
+                                                        <video class="video-tile-video" id="video-0"></video>
+                                                        <img src="https://trainingroomfiles.s3-us-west-2.amazonaws.com/ss.png" alt="WebFitness" class="hide mw-100" id="img-oneByOne-0" crossOrigin="anonymous"></img>
+                                                        <div class="video-tile-attendeeid hide" id="attendeeid-0"></div>
+                                                        <div class="dflxDiv jcSB vidiconBar w-100">
+                                                            <div class="dflxDiv">
+                                                                <button type="button" class="btn circleBase fullScreenIcon hideInTrainer mr5 jsfullScreenCompressIndication" id="fullScreen-0" data-bondingDiv="#st-fullScreen-0"></button>
+                                                                <button type="button" class="btn circleBase unmute jsMuteUnmuteIndication hideInmember" id="mute-0" data-bondingDiv="#st-mute-0"></button>
+                                                            </div>
+                                                            <span class="jsMuIndi circleBase unmute hideIntrainer hide" id="st-mute-0"></span>
+                                                            <span class="heartBeatCount" id="heartBeatCount-0"></span>
+                                                        </div>
+                                                        <div class="dflxDiv jcSB nameplate w-100">
+                                                            <div class="dflxDiv flxg2 aiCenter">
+                                                                <button class="btn-circle btn-info w30 mr5 jsOneOn1 jsTooltip" id="btnOneOn1-0" title="1-on-1"><i class="fas fa-user-friends"></i></button>
+                                                                <div class="dflxDiv flxcolumn flxg2">
+                                                                    <h6 id="customer-name-0"></h6>
+                                                                    <small><small id="customer-location-0"></small></small>
+                                                                </div>
+                                                            </div>
+                                                            <button type="button" class="video-tile-pause" id="video-pause-0"></button>
+                                                        </div>
+                                                    </div>
+                                                    <div class="video-tile vidTile" id="tile-1">
+                                                        <video class="video-tile-video" id="video-1"></video>
+                                                        <img src="https://trainingroomfiles.s3-us-west-2.amazonaws.com/ss.png" alt="WebFitness" class="hide mw-100" id="img-oneByOne-1" crossOrigin="anonymous"></img>
+                                                        <div class="video-tile-attendeeid hide" id="attendeeid-1"></div>
+                                                        <div class="dflxDiv jcSB vidiconBar w-100">
+                                                            <div class="dflxDiv">
+                                                                <button type="button" class="btn circleBase fullScreenIcon hideInTrainer mr5 jsfullScreenCompressIndication" id="fullScreen-1" data-bondingDiv="#st-fullScreen-1"></button>
+                                                                <button type="button" class="btn circleBase unmute jsMuteUnmuteIndication hideInmember" id="mute-1" data-bondingDiv="#st-mute-1"></button>
+                                                            </div>
+                                                            <span class="jsMuIndi circleBase unmute hideIntrainer" id="st-mute-1"></span>
+                                                            <span class="heartBeatCount" id="heartBeatCount-1"></span>
+                                                        </div>
+                                                        <div class="dflxDiv jcSB nameplate w-100">
+                                                            <div class="dflxDiv flxg2 aiCenter">
+                                                                <button class="btn-circle btn-info w30 mr5 jsOneOn1 jsTooltip" id="btnOneOn1-1" title="1-on-1"><i class="fas fa-user-friends"></i></button>
+                                                                <div class="dflxDiv flxcolumn flxg2">
+                                                                    <h6 id="customer-name-1"></h6>
+                                                                    <small><small id="customer-location-1"></small></small>
+                                                                </div>
+                                                            </div>
+                                                            <button type="button" class="video-tile-pause" id="video-pause-1"></button>
+                                                        </div>
+                                                    </div>
+                                                    <div class="video-tile vidTile" id="tile-2">
+                                                        <video class="video-tile-video" id="video-2"></video>
+                                                        <img src="https://trainingroomfiles.s3-us-west-2.amazonaws.com/ss.png" alt="WebFitness" class="hide mw-100" id="img-oneByOne-2" crossOrigin="anonymous"></img>
+                                                        <div class="video-tile-attendeeid hide" id="attendeeid-2"></div>
+                                                        <div class="dflxDiv jcSB vidiconBar w-100">
+                                                            <div class="dflxDiv">
+                                                                <button type="button" class="btn circleBase fullScreenIcon hideInTrainer mr5 jsfullScreenCompressIndication" id="fullScreen-2" data-bondingDiv="#st-fullScreen-2"></button>
+                                                                <button type="button" class="btn circleBase unmute jsMuteUnmuteIndication hideInmember" id="mute-2" data-bondingDiv="#st-mute-2"></button>
+                                                            </div>
+                                                            <span class="jsMuIndi circleBase unmute hideIntrainer" id="st-mute-2"></span>
+                                                            <span class="heartBeatCount" id="heartBeatCount-2"></span>
+                                                        </div>
+                                                        <div class="dflxDiv jcSB nameplate w-100">
+                                                            <div class="dflxDiv flxg2 aiCenter">
+                                                                <button class="btn-circle btn-info w30 mr5 jsOneOn1 jsTooltip" id="btnOneOn1-2" title="1-on-1"><i class="fas fa-user-friends"></i></button>
+                                                                <div class="dflxDiv flxcolumn flxg2">
+                                                                    <h6 id="customer-name-2"></h6>
+                                                                    <small><small id="customer-location-2"></small></small>
+                                                                </div>
+                                                            </div>
+                                                            <button type="button" class="video-tile-pause" id="video-pause-2"></button>
+                                                        </div>
+                                                    </div>
+                                                    <div class="video-tile vidTile" id="tile-3">
+                                                        <video class="video-tile-video" id="video-3"></video>
+                                                        <img src="https://trainingroomfiles.s3-us-west-2.amazonaws.com/ss.png" alt="WebFitness" class="hide mw-100" id="img-oneByOne-3" crossOrigin="anonymous"></img>
+                                                        <div class="video-tile-attendeeid hide" id="attendeeid-3"></div>
+                                                        <div class="dflxDiv jcSB vidiconBar w-100">
+                                                            <div class="dflxDiv">
+                                                                <button type="button" class="btn circleBase fullScreenIcon hideInTrainer mr5 jsfullScreenCompressIndication" id="fullScreen-3" data-bondingDiv="#st-fullScreen-3"></button>
+                                                                <button type="button" class="btn circleBase unmute jsMuteUnmuteIndication hideInmember" id="mute-3" data-bondingDiv="#st-mute-3"></button>
+                                                            </div>
+                                                            <span class="jsMuIndi circleBase unmute hideIntrainer" id="st-mute-3"></span>
+                                                            <span class="heartBeatCount" id="heartBeatCount-3"></span>
+                                                        </div>
+                                                        <div class="dflxDiv jcSB nameplate w-100">
+                                                            <div class="dflxDiv flxg2 aiCenter">
+                                                                <button class="btn-circle btn-info w30 mr5 jsOneOn1 jsTooltip" id="btnOneOn1-3" title="1-on-1"><i class="fas fa-user-friends"></i></button>
+                                                                <div class="dflxDiv flxcolumn flxg2">
+                                                                    <h6 id="customer-name-3"></h6>
+                                                                    <small><small id="customer-location-3"></small></small>
+                                                                </div>
+                                                            </div>
+                                                            <button type="button" class="video-tile-pause" id="video-pause-3"></button>
+                                                        </div>
+                                                    </div>
+                                                    <div class="video-tile vidTile" id="tile-4">
+                                                        <video class="video-tile-video" id="video-4"></video>
+                                                        <img src="https://trainingroomfiles.s3-us-west-2.amazonaws.com/ss.png" alt="WebFitness" class="hide mw-100" id="img-oneByOne-4" crossOrigin="anonymous"></img>
+                                                        <div class="video-tile-attendeeid hide" id="attendeeid-4"></div>
+                                                        <div class="dflxDiv jcSB vidiconBar w-100">
+                                                            <div class="dflxDiv">
+                                                                <button type="button" class="btn circleBase fullScreenIcon hideInTrainer mr5 jsfullScreenCompressIndication" id="fullScreen-4" data-bondingDiv="#st-fullScreen-4"></button>
+                                                                <button type="button" class="btn circleBase unmute jsMuteUnmuteIndication hideInmember" id="mute-4" data-bondingDiv="#st-mute-4"></button>
+                                                            </div>
+                                                            <span class="jsMuIndi circleBase unmute hideIntrainer" id="st-mute-4"></span>
+                                                            <span class="heartBeatCount" id="heartBeatCount-4"></span>
+                                                        </div>
+                                                        <div class="dflxDiv jcSB nameplate w-100">
+                                                            <div class="dflxDiv flxg2 aiCenter">
+                                                                <button class="btn-circle btn-info w30 mr5 jsOneOn1 jsTooltip" id="btnOneOn1-4" title="1-on-1"><i class="fas fa-user-friends"></i></button>
+                                                                <div class="dflxDiv flxcolumn flxg2">
+                                                                    <h6 id="customer-name-4"></h6>
+                                                                    <small><small id="customer-location-4"></small></small>
+                                                                </div>
+                                                            </div>
+                                                            <button type="button" class="video-tile-pause" id="video-pause-4"></button>
+                                                        </div>
+                                                    </div>
+                                                    <div class="video-tile vidTile" id="tile-5">
+                                                        <video class="video-tile-video" id="video-5"></video>
+                                                        <img src="https://trainingroomfiles.s3-us-west-2.amazonaws.com/ss.png" alt="WebFitness" class="hide mw-100" id="img-oneByOne-5" crossOrigin="anonymous"></img>
+                                                        <div class="video-tile-attendeeid hide" id="attendeeid-5"></div>
+                                                        <div class="dflxDiv jcSB vidiconBar w-100">
+                                                            <div class="dflxDiv">
+                                                                <button type="button" class="btn circleBase fullScreenIcon hideInTrainer mr5 jsfullScreenCompressIndication" id="fullScreen-5" data-bondingDiv="#st-fullScreen-5"></button>
+                                                                <button type="button" class="btn circleBase unmute jsMuteUnmuteIndication hideInmember" id="mute-5" data-bondingDiv="#st-mute-5"></button>
+                                                            </div>
+                                                            <span class="jsMuIndi circleBase unmute hideIntrainer" id="st-mute-5"></span>
+                                                            <span class="heartBeatCount" id="heartBeatCount-5"></span>
+                                                        </div>
+                                                        <div class="dflxDiv jcSB nameplate w-100">
+                                                            <div class="dflxDiv flxg2 aiCenter">
+                                                                <button class="btn-circle btn-info w30 mr5 jsOneOn1 jsTooltip" id="btnOneOn1-5" title="1-on-1"><i class="fas fa-user-friends"></i></button>
+                                                                <div class="dflxDiv flxcolumn flxg2">
+                                                                    <h6 id="customer-name-5"></h6>
+                                                                    <small><small id="customer-location-5"></small></small>
+                                                                </div>
+                                                            </div>
+                                                            <button type="button" class="video-tile-pause" id="video-pause-5"></button>
+                                                        </div>
+                                                    </div>
+                                                    <div class="video-tile vidTile" id="tile-6">
+                                                        <video class="video-tile-video" id="video-6"></video>
+                                                        <img src="https://trainingroomfiles.s3-us-west-2.amazonaws.com/ss.png" alt="WebFitness" class="hide mw-100" id="img-oneByOne-6" crossOrigin="anonymous"></img>
+                                                        <div class="video-tile-attendeeid hide" id="attendeeid-6"></div>
+                                                        <div class="dflxDiv jcSB vidiconBar w-100">
+                                                            <div class="dflxDiv">
+                                                                <button type="button" class="btn circleBase fullScreenIcon hideInTrainer mr5 jsfullScreenCompressIndication" id="fullScreen-6" data-bondingDiv="#st-fullScreen-6"></button>
+                                                                <button type="button" class="btn circleBase unmute jsMuteUnmuteIndication hideInmember" id="mute-6" data-bondingDiv="#st-mute-6"></button>
+                                                            </div>
+                                                            <span class="jsMuIndi circleBase unmute hideIntrainer" id="st-mute-6"></span>
+                                                            <span class="heartBeatCount" id="heartBeatCount-6"></span>
+                                                        </div>
+                                                        <div class="dflxDiv jcSB nameplate w-100">
+                                                            <div class="dflxDiv flxg2 aiCenter">
+                                                                <button class="btn-circle btn-info w30 mr5 jsOneOn1 jsTooltip" id="btnOneOn1-6" title="1-on-1"><i class="fas fa-user-friends"></i></button>
+                                                                <div class="dflxDiv flxcolumn flxg2">
+                                                                    <h6 id="customer-name-6"></h6>
+                                                                    <small><small id="customer-location-6"></small></small>
+                                                                </div>
+                                                            </div>
+                                                            <button type="button" class="video-tile-pause" id="video-pause-6"></button>
+                                                        </div>
+                                                    </div>
+                                                    <div class="video-tile vidTile" id="tile-7">
+                                                        <video class="video-tile-video" id="video-7"></video>
+                                                        <img src="https://trainingroomfiles.s3-us-west-2.amazonaws.com/ss.png" alt="WebFitness" class="hide mw-100" id="img-oneByOne-7" crossOrigin="anonymous"></img>
+                                                        <div class="video-tile-attendeeid hide" id="attendeeid-7"></div>
+                                                        <div class="dflxDiv jcSB vidiconBar w-100">
+                                                            <div class="dflxDiv">
+                                                                <button type="button" class="btn circleBase fullScreenIcon hideInTrainer mr5 jsfullScreenCompressIndication" id="fullScreen-7" data-bondingDiv="#st-fullScreen-7"></button>
+                                                                <button type="button" class="btn circleBase unmute jsMuteUnmuteIndication hideInmember" id="mute-7" data-bondingDiv="#st-mute-7"></button>
+                                                            </div>
+                                                            <span class="jsMuIndi circleBase unmute hideIntrainer" id="st-mute-7"></span>
+                                                            <span class="heartBeatCount" id="heartBeatCount-7"></span>
+                                                        </div>
+                                                        <div class="dflxDiv jcSB nameplate w-100">
+                                                            <div class="dflxDiv flxg2 aiCenter">
+                                                                <button class="btn-circle btn-info w30 mr5 jsOneOn1 jsTooltip" id="btnOneOn1-7" title="1-on-1"><i class="fas fa-user-friends"></i></button>
+                                                                <div class="dflxDiv flxcolumn flxg2">
+                                                                    <h6 id="customer-name-7"></h6>
+                                                                    <small><small id="customer-location-7"></small></small>
+                                                                </div>
+                                                            </div>
+                                                            <button type="button" class="video-tile-pause" id="video-pause-7"></button>
+                                                        </div>
+                                                    </div>
+                                                    <div class="video-tile vidTile" id="tile-8">
+                                                        <video class="video-tile-video" id="video-8"></video>
+                                                        <img src="https://trainingroomfiles.s3-us-west-2.amazonaws.com/ss.png" alt="WebFitness" class="hide mw-100" id="img-oneByOne-8" crossOrigin="anonymous"></img>
+                                                        <div class="video-tile-attendeeid hide" id="attendeeid-8"></div>
+                                                        <div class="dflxDiv jcSB vidiconBar w-100">
+                                                            <div class="dflxDiv">
+                                                                <button type="button" class="btn circleBase fullScreenIcon hideInTrainer mr5 jsfullScreenCompressIndication" id="fullScreen-8" data-bondingDiv="#st-fullScreen-8"></button>
+                                                                <button type="button" class="btn circleBase unmute jsMuteUnmuteIndication hideInmember" id="mute-8" data-bondingDiv="#st-mute-8"></button>
+                                                            </div>
+                                                            <span class="jsMuIndi circleBase unmute hideIntrainer" id="st-mute-8"></span>
+                                                            <span class="heartBeatCount" id="heartBeatCount-8"></span>
+                                                        </div>
+                                                        <div class="dflxDiv jcSB nameplate w-100">
+                                                            <div class="dflxDiv flxg2 aiCenter">
+                                                                <button class="btn-circle btn-info w30 mr5 jsOneOn1 jsTooltip" id="btnOneOn1-8" title="1-on-1"><i class="fas fa-user-friends"></i></button>
+                                                                <div class="dflxDiv flxcolumn flxg2">
+                                                                    <h6 id="customer-name-8"></h6>
+                                                                    <small><small id="customer-location-8"></small></small>
+                                                                </div>
+                                                            </div>
+                                                            <button type="button" class="video-tile-pause" id="video-pause-8"></button>
+                                                        </div>
+                                                    </div>
+                                                    <div class="video-tile vidTile" id="tile-9">
+                                                        <video class="video-tile-video" id="video-9"></video>
+                                                        <img src="https://trainingroomfiles.s3-us-west-2.amazonaws.com/ss.png" alt="WebFitness" class="hide mw-100" id="img-oneByOne-9" crossOrigin="anonymous"></img>
+                                                        <div class="video-tile-attendeeid hide" id="attendeeid-9"></div>
+                                                        <div class="dflxDiv jcSB vidiconBar w-100">
+                                                            <div class="dflxDiv">
+                                                                <button type="button" class="btn circleBase fullScreenIcon hideInTrainer mr5 jsfullScreenCompressIndication" id="fullScreen-9" data-bondingDiv="#st-fullScreen-9"></button>
+                                                                <button type="button" class="btn circleBase unmute jsMuteUnmuteIndication hideInmember" id="mute-9" data-bondingDiv="#st-mute-9"></button>
+                                                            </div>
+                                                            <span class="jsMuIndi circleBase unmute hideIntrainer" id="st-mute-9"></span>
+                                                            <span class="heartBeatCount" id="heartBeatCount-9"></span>
+                                                        </div>
+                                                        <div class="dflxDiv jcSB nameplate w-100">
+                                                            <div class="dflxDiv flxg2 aiCenter">
+                                                                <button class="btn-circle btn-info w30 mr5 jsOneOn1 jsTooltip" id="btnOneOn1-9" title="1-on-1"><i class="fas fa-user-friends"></i></button>
+                                                                <div class="dflxDiv flxcolumn flxg2">
+                                                                    <h6 id="customer-name-9"></h6>
+                                                                    <small><small id="customer-location-9"></small></small>
+                                                                </div>
+                                                            </div>
+                                                            <button type="button" class="video-tile-pause" id="video-pause-9"></button>
+                                                        </div>
+                                                    </div>
+                                                    <div class="video-tile vidTile" id="tile-10">
+                                                        <video class="video-tile-video" id="video-10"></video>
+                                                        <img src="https://trainingroomfiles.s3-us-west-2.amazonaws.com/ss.png" alt="WebFitness" class="hide mw-100" id="img-oneByOne-10" crossOrigin="anonymous"></img>
+                                                        <div class="video-tile-attendeeid hide" id="attendeeid-10"></div>
+                                                        <div class="dflxDiv jcSB vidiconBar w-100">
+                                                            <div class="dflxDiv">
+                                                                <button type="button" class="btn circleBase fullScreenIcon hideInTrainer mr5 jsfullScreenCompressIndication" id="fullScreen-10" data-bondingDiv="#st-fullScreen-10"></button>
+                                                                <button type="button" class="btn circleBase unmute jsMuteUnmuteIndication hideInmember" id="mute-10" data-bondingDiv="#st-mute-10"></button>
+                                                            </div>
+                                                            <span class="jsMuIndi circleBase unmute hideIntrainer" id="st-mute-10"></span>
+                                                            <span class="heartBeatCount" id="heartBeatCount-10"></span>
+                                                        </div>
+                                                        <div class="dflxDiv jcSB nameplate w-100">
+                                                            <div class="dflxDiv flxg2 aiCenter">
+                                                                <button class="btn-circle btn-info w30 mr5 jsOneOn1 jsTooltip" id="btnOneOn1-10" title="1-on-1"><i class="fas fa-user-friends"></i></button>
+                                                                <div class="dflxDiv flxcolumn flxg2">
+                                                                    <h6 id="customer-name-10"></h6>
+                                                                    <small><small id="customer-location-10"></small></small>
+                                                                </div>
+                                                            </div>
+                                                            <button type="button" class="video-tile-pause" id="video-pause-10"></button>
+                                                        </div>
+                                                    </div>
+                                                    <div class="video-tile vidTile" id="tile-11">
+                                                        <video class="video-tile-video" id="video-11"></video>
+                                                        <img src="https://trainingroomfiles.s3-us-west-2.amazonaws.com/ss.png" alt="WebFitness" class="hide mw-100" id="img-oneByOne-11" crossOrigin="anonymous"></img>
+                                                        <div class="video-tile-attendeeid hide" id="attendeeid-11"></div>
+                                                        <div class="dflxDiv jcSB vidiconBar w-100">
+                                                            <div class="dflxDiv">
+                                                                <button type="button" class="btn circleBase fullScreenIcon hideInTrainer mr5 jsfullScreenCompressIndication" id="fullScreen-11" data-bondingDiv="#st-fullScreen-11"></button>
+                                                                <button type="button" class="btn circleBase unmute jsMuteUnmuteIndication hideInmember" id="mute-11" data-bondingDiv="#st-mute-11"></button>
+                                                            </div>
+                                                            <span class="jsMuIndi circleBase unmute hideIntrainer" id="st-mute-11"></span>
+                                                            <span class="heartBeatCount" id="heartBeatCount-11"></span>
+                                                        </div>
+                                                        <div class="dflxDiv jcSB nameplate w-100">
+                                                            <div class="dflxDiv flxg2 aiCenter">
+                                                                <button class="btn-circle btn-info w30 mr5 jsOneOn1 jsTooltip" id="btnOneOn1-11" title="1-on-1"><i class="fas fa-user-friends"></i></button>
+                                                                <div class="dflxDiv flxcolumn flxg2">
+                                                                    <h6 id="customer-name-11"></h6>
+                                                                    <small><small id="customer-location-11"></small></small>
+                                                                </div>
+                                                            </div>
+                                                            <button type="button" class="video-tile-pause" id="video-pause-11"></button>
+                                                        </div>
+                                                    </div>
+                                                    <div class="video-tile vidTile" id="tile-12">
+                                                        <video class="video-tile-video" id="video-12"></video>
+                                                        <img src="https://trainingroomfiles.s3-us-west-2.amazonaws.com/ss.png" alt="WebFitness" class="hide mw-100" id="img-oneByOne-12" crossOrigin="anonymous"></img>
+                                                        <div class="video-tile-attendeeid hide" id="attendeeid-12"></div>
+                                                        <div class="dflxDiv jcSB vidiconBar w-100">
+                                                            <div class="dflxDiv">
+                                                                <button type="button" class="btn circleBase fullScreenIcon hideInTrainer mr5 jsfullScreenCompressIndication" id="fullScreen-12" data-bondingDiv="#st-fullScreen-12"></button>
+                                                                <button type="button" class="btn circleBase unmute jsMuteUnmuteIndication hideInmember" id="mute-12" data-bondingDiv="#st-mute-12"></button>
+                                                            </div>
+                                                            <span class="jsMuIndi circleBase unmute hideIntrainer" id="st-mute-12"></span>
+                                                            <span class="heartBeatCount" id="heartBeatCount-12"></span>
+                                                        </div>
+                                                        <div class="dflxDiv jcSB nameplate w-100">
+                                                            <div class="dflxDiv flxg2 aiCenter">
+                                                                <button class="btn-circle btn-info w30 mr5 jsOneOn1 jsTooltip" id="btnOneOn1-12" title="1-on-1"><i class="fas fa-user-friends"></i></button>
+                                                                <div class="dflxDiv flxcolumn flxg2">
+                                                                    <h6 id="customer-name-12"></h6>
+                                                                    <small><small id="customer-location-12"></small></small>
+                                                                </div>
+                                                            </div>
+                                                            <button type="button" class="video-tile-pause" id="video-pause-12"></button>
+                                                        </div>
+                                                    </div>
+                                                    <div class="video-tile vidTile" id="tile-13">
+                                                        <video class="video-tile-video" id="video-13"></video>
+                                                        <img src="https://trainingroomfiles.s3-us-west-2.amazonaws.com/ss.png" alt="WebFitness" class="hide mw-100" id="img-oneByOne-13" crossOrigin="anonymous"></img>
+                                                        <div class="video-tile-attendeeid hide" id="attendeeid-13"></div>
+                                                        <div class="dflxDiv jcSB vidiconBar w-100">
+                                                            <div class="dflxDiv">
+                                                                <button type="button" class="btn circleBase fullScreenIcon hideInTrainer mr5 jsfullScreenCompressIndication" id="fullScreen-13" data-bondingDiv="#st-fullScreen-13"></button>
+                                                                <button type="button" class="btn circleBase unmute jsMuteUnmuteIndication hideInmember" id="mute-13" data-bondingDiv="#st-mute-13"></button>
+                                                            </div>
+                                                            <span class="jsMuIndi circleBase unmute hideIntrainer" id="st-mute-13"></span>
+                                                            <span class="heartBeatCount" id="heartBeatCount-13"></span>
+                                                        </div>
+                                                        <div class="dflxDiv jcSB nameplate w-100">
+                                                            <div class="dflxDiv flxg2 aiCenter">
+                                                                <button class="btn-circle btn-info w30 mr5 jsOneOn1 jsTooltip" id="btnOneOn1-13" title="1-on-1"><i class="fas fa-user-friends"></i></button>
+                                                                <div class="dflxDiv flxcolumn flxg2">
+                                                                    <h6 id="customer-name-13"></h6>
+                                                                    <small><small id="customer-location-13"></small></small>
+                                                                </div>
+                                                            </div>
+                                                            <button type="button" class="video-tile-pause" id="video-pause-13"></button>
+                                                        </div>
+                                                    </div>
+                                                    <div class="video-tile vidTile" id="tile-14">
+                                                        <video class="video-tile-video" id="video-14"></video>
+                                                        <img src="https://trainingroomfiles.s3-us-west-2.amazonaws.com/ss.png" alt="WebFitness" class="hide mw-100" id="img-oneByOne-14" crossOrigin="anonymous"></img>
+                                                        <div class="video-tile-attendeeid hide" id="attendeeid-14"></div>
+                                                        <div class="dflxDiv jcSB vidiconBar w-100">
+                                                            <div class="dflxDiv">
+                                                                <button type="button" class="btn circleBase fullScreenIcon hideInTrainer mr5 jsfullScreenCompressIndication" id="fullScreen-14" data-bondingDiv="#st-fullScreen-14"></button>
+                                                                <button type="button" class="btn circleBase unmute jsMuteUnmuteIndication hideInmember" id="mute-14" data-bondingDiv="#st-mute-14"></button>
+                                                            </div>
+                                                            <span class="jsMuIndi circleBase unmute hideIntrainer" id="st-mute-14"></span>
+                                                            <span class="heartBeatCount" id="heartBeatCount-14"></span>
+                                                        </div>
+                                                        <div class="dflxDiv jcSB nameplate w-100">
+                                                            <div class="dflxDiv flxg2 aiCenter">
+                                                                <button class="btn-circle btn-info w30 mr5 jsOneOn1 jsTooltip" id="btnOneOn1-14" title="1-on-1"><i class="fas fa-user-friends"></i></button>
+                                                                <div class="dflxDiv flxcolumn flxg2">
+                                                                    <h6 id="customer-name-14"></h6>
+                                                                    <small><small id="customer-location-14"></small></small>
+                                                                </div>
+                                                            </div>
+                                                            <button type="button" class="video-tile-pause" id="video-pause-14"></button>
+                                                        </div>
+                                                    </div>
+                                                    <div class="video-tile vidTile" id="tile-15">
+                                                        <video class="video-tile-video" id="video-15"></video>
+                                                        <img src="https://trainingroomfiles.s3-us-west-2.amazonaws.com/ss.png" alt="WebFitness" class="hide mw-100" id="img-oneByOne-15" crossOrigin="anonymous"></img>
+                                                        <div class="video-tile-attendeeid hide" id="attendeeid-15"></div>
+                                                        <div class="dflxDiv jcSB vidiconBar w-100">
+                                                            <div class="dflxDiv">
+                                                                <button type="button" class="btn circleBase fullScreenIcon hideInTrainer mr5 jsfullScreenCompressIndication" id="fullScreen-15" data-bondingDiv="#st-fullScreen-15"></button>
+                                                                <button type="button" class="btn circleBase unmute jsMuteUnmuteIndication hideInmember" id="mute-15" data-bondingDiv="#st-mute-15"></button>
+                                                            </div>
+                                                            <span class="jsMuIndi circleBase unmute hideIntrainer" id="st-mute-15"></span>
+                                                            <span class="heartBeatCount" id="heartBeatCount-15"></span>
+                                                        </div>
+                                                        <div class="dflxDiv jcSB nameplate w-100">
+                                                            <div class="dflxDiv flxg2 aiCenter">
+                                                                <button class="btn-circle btn-info w30 mr5 jsOneOn1 jsTooltip" id="btnOneOn1-15" title="1-on-1"><i class="fas fa-user-friends"></i></button>
+                                                                <div class="dflxDiv flxcolumn flxg2">
+                                                                    <h6 id="customer-name-15"></h6>
+                                                                    <small><small id="customer-location-15"></small></small>
+                                                                </div>
+                                                            </div>
+                                                            <button type="button" class="video-tile-pause" id="video-pause-15"></button>
+                                                        </div>
+                                                    </div>
+                                                    <div class="video-tile vidTile" id="tile-17">
+                                                        <video class="video-tile-video" id="video-17"></video>
+                                                        <img src="https://trainingroomfiles.s3-us-west-2.amazonaws.com/ss.png" alt="WebFitness" class="hide mw-100" id="img-oneByOne-17" crossOrigin="anonymous"></img>
+                                                        <div class="video-tile-attendeeid hide" id="attendeeid-17"></div>
+                                                        <div class="dflxDiv jcSB vidiconBar w-100">
+                                                            <div class="dflxDiv">
+                                                                <button type="button" class="btn circleBase fullScreenIcon hideInTrainer mr5 jsfullScreenCompressIndication" id="fullScreen-17" data-bondingDiv="#st-fullScreen-17"></button>
+                                                                <button type="button" class="btn circleBase unmute jsMuteUnmuteIndication hideInmember" id="mute-17" data-bondingDiv="#st-mute-17"></button>
+                                                            </div>
+                                                            <span class="jsMuIndi circleBase unmute hideIntrainer" id="st-mute-17"></span>
+                                                            <span class="heartBeatCount" id="heartBeatCount-17"></span>
+                                                        </div>
+                                                        <div class="dflxDiv jcSB nameplate w-100">
+                                                            <div class="dflxDiv flxg2 aiCenter">
+                                                                <button class="btn-circle btn-info w30 mr5 jsOneOn1 jsTooltip" id="btnOneOn1-17" title="1-on-1"><i class="fas fa-user-friends"></i></button>
+                                                                <div class="dflxDiv flxcolumn flxg2">
+                                                                    <h6 id="customer-name-17"></h6>
+                                                                    <small><small id="customer-location-17"></small></small>
+                                                                </div>
+                                                            </div>
+                                                            <button type="button" class="video-tile-pause" id="video-pause-17"></button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="listDiv mslide right h-100 w300 flx300 jsMembersList active" id="rightPane">
+                                <div class="flexdiv">
+                                    <div class="flex-stack">
+                                        <div class="flexHeader darkgreyBG text-white">
+                                            <div class="dflxDiv aiCenter h-42 p2">
+                                                <div class="flxg2">
+                                                    <div id="meeting-id"></div>
+                                                    <div id="mobile-chime-meeting-id" class="d-block d-sm-none"></div>
+                                                    <div id="mobile-attendee-id" class="d-block d-sm-none"></div>
+                                                </div>
+                                                <div class="btn-group mr5" data-tab="buttons">
+                                                    <label class="btn btn-info jsTooltip" data-parent="1" title="Members">
+                                                        <input type="radio" name="slideOptions" value="1" data-opVal="2" autocomplete="off" checked><i class="fas fa-users"></i>
+                                                    </label>
+                                                    <label class="btn btn-info active jsTooltip" data-parent="2" title="Exercises List">
+                                                        <input type="radio" name="slideOptions" value="2" data-opVal="1" autocomplete="off"><i class="fas fa-list"></i>
+                                                    </label>
+                                                </div>
+                                                <div class="dflxDiv aiCenter">
+                                                    <button type="button" class="btn btn-outline-secondary mr5 jsTooltip" title="Workout Information" data-toggle="modal" data-target="#infoModal"><i class="fas fa-info"></i></button>
+                                                    <button type="button" class="btn btn-outline-secondary jsTooltip" id="messageBtn" title="Messages" data-toggle="modal" data-target="#messageModal"><i class="fas fa-comments"></i></button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="flex-columns scrollBehavior bs-component grey-100 flxcolumn por">
+                                            <div class="slide right jsMembersListDiv" id="option1">
+                                                <ul id="roster" class="list-group h-100 w100p memberListUl"></ul>
+                                            </div>
+                                            <div class="slide right jsExerciseListDiv active" id="option2">
+                                                <table class="fsTable evenStyle flextable tblMapping fz24 flxW" id="exerciseList">
+                                                    <thead>
+                                                        <tr class="mobFilterRow jsTableHead">
+                                                            <th><u id="button-restart" style="cursor:pointer">Exercise</u></th>
+                                                            <th class="w60 fInitial" title="Seconds"><i class="fas fa-clock"></i></th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody class="pb15 dropbase scrollBehavior" id="left-defaults"></tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <video id="content-share-video" playsinline crossOrigin="anonymous" style="display:none"></video>
+                            <div class="hide">
+                                <audio crossorigin="anonymous" id="TrainSongID"  class="hide"></audio>
+                                <img crossOrigin="anonymous" id="bottom_of_video" src="https://trainingroomfiles.s3-us-west-2.amazonaws.com/200x300.jpg"  class="hide"></img crossOrigin="anonymous">
+                                <img crossOrigin="anonymous" id="top_of_video" src="https://trainingroomfiles.s3-us-west-2.amazonaws.com/bottom.png" class="hide"></img crossOrigin="anonymous">
+                                <img crossOrigin="anonymous" id="left_right_sign" src="https://trainingroomfiles.s3-us-west-2.amazonaws.com/200x300.jpg"  class="hide"></img crossOrigin="anonymous">
+                                <img crossOrigin="anonymous" id="alternate_sign" src="https://trainingroomfiles.s3-us-west-2.amazonaws.com/200x300.jpg"  class="hide"></img crossOrigin="anonymous">
+                                <img crossOrigin="anonymous" id="logo" src="https://trainingroomfiles.s3-us-west-2.amazonaws.com/200x300.jpg"  class="hide"></img crossOrigin="anonymous">
+                                <img crossOrigin="anonymous" id="img_bottle" src="https://trainingroomfiles.s3-us-west-2.amazonaws.com/200x300.jpg"  class="hide"></img crossOrigin="anonymous">
+                                <video src="https://trainingroomfiles.s3-us-west-2.amazonaws.com/time.mp4" id="TimerVideo" preload="auto" controls="false" class="hide" loop="true"></video>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Failure card if meeting cannot be joined -->
+            <div id="flow-failed-join" class="flow whiteTransparentBG" style="display:none">
+                <div class="container">
+                    <form id="form-failed-join">
+                        <div class="card border-warning mb-3" style="max-width: 20rem;">
+                            <div id="failed-join" class="card-header"></div>
+                            <div class="card-body">
+                                <h4 class="card-title">Unable to join meeting</h4>
+                                <p class="card-text">There was an issue joining that meeting. Check your connectivity and try again.</p>
+                                <small id="failed-join-error" class="text-muted"></small>
+                            </div>
+                        </div>
+                        <button class="btn btn-lg btn-outline-warning btn-block" type="submit">OK</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+
+    <!-- Modals -->
+    <!-- Information modal -->
+    <div class="modal fade" id="infoModal">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title flxg2">Workout Information</h5>
+                    <!-- <button id="settingsButton" type="button" class="btn btn-icoOnly text-theme mr5 nopad jsTooltip" title="Select Devices"><i class="fas fa-cog"></i></button> -->
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <fieldset class="boxElement hide">
+                        <legend>Share Screen Controls</legend>
+                        <div class="form-group mb0">
+                            <div class="btn-group mr5" role="group" aria-label="Toggle content share">
+                                <button id="button-content-share" type="button" class="btn btn-outline-theme jsTooltip" title="Toggle screen share"><i class="fas fa-desktop"></i></button>
+                                <div class="btn-group" role="group">
+                                    <button id="button-content-share-drop" type="button" class="btn btn-outline-theme dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" title="Select content to share"></button>
+                                    <div id="dropdown-menu-content-share" class="dropdown-menu dropdown-menu-right" aria-labelledby="button-content-share-drop" x-placement="bottom-start" style="position: absolute; transform: translate3d(0px, 38px, 0px); top: 0px; left: 0px; will-change: transform;">
+                                        <a id="dropdown-item-content-share-screen-capture" class="dropdown-item" href="#">Screen Capture...</a>
+                                        <a id="dropdown-item-content-share-screen-test-video" class="dropdown-item" href="#">Test Video</a>
+                                        <a id="dropdown-item-content-share-file-item" class="dropdown-item" href="#"><input id="content-share-item" type="file"></a>
+                                        <a id="dropdown-item-content-share-stop" style="display:none" class="dropdown-item" href="#">Stop Sharing</a>
+                                    </div>
+                                </div>
+                            </div>
+                            <button id="button-pause-content-share" type="button" class="btn btn-outline-theme jsTooltip" title="Pause/Unpause screen share"><i class="fas fa-pause"></i></button>
+                        </div>
+                    </fieldset>
+                    <fieldset class="boxElement">
+                        <legend>Technical Information</legend>
+                        <div class="form-group mb0">
+                            <table class="fsTable evenStyle">
+                                <tr class="hide"><td><strong>Class Name:</strong></td><td id="class-meeting-id"></td></tr>
+                                <tr class="hide"><td><strong>Meeting Id:</strong></td><td id="chime-meeting-id"></td></tr>
+                                <tr class="hide"><td><strong>Attendee Id:</strong></td><td id="desktop-attendee-id"></td></tr>
+                                <tr><td><strong>Available Uplink Bandwidth:</strong></td><td id="video-uplink-bandwidth"></td></tr>
+                                <tr><td><strong>Available Downlink Bandwidth:</strong></td><td id="video-downlink-bandwidth"></td></tr>
+                            </table>
+                        </div>
+                    </fieldset>
+                    <fieldset class="boxElement">
+                        <legend>Workout Details</legend>
+                        <div class="form-group mb0">
+                            <table class="fsTable evenStyle mb15">
+                                <tr>
+                                    <td colspan="2"><strong>General</strong></td>
+                                </tr>
+                                <tr><td class="w120"><strong>Workout Name:</strong></td>
+                                    <td id="workout-name"></td>
+                                </tr>
+                                <tr><td class="w120"><strong>Workout Version:</strong></td>
+                                    <td id="workout-version"></td>
+                                </tr>
+                                <tr>
+                                    <td class="w120"><strong>Trainer:</strong></td>
+                                    <td id='workout-trainer-name'></td>
+                                </tr>
+                                <tr>
+                                    <td class="w120"><strong>Duration:</strong></td>
+                                    <td id='duration'>45 mins</td>
+                                </tr>
+                                <tr>
+                                    <td class="w120"><strong>Body Area:</strong></td>
+                                    <td><div id='body-area' class="dflxDiv aiCenter"><i class="fa fa-2x wf icon-UpperBody mr5"></i><span>Upper</span></div></td>
+                                </tr>
+                                <tr>
+                                    <td class="w120"><strong>Difficulty Level:</strong></td>
+                                    <td><div id='difficulty-level' class="dflxDiv aiCenter"><i class="fa fa-2x wf icon-advanced-level mr5"></i><span>3(Advanced)</span></div></td>
+                                </tr>
+                                <tr>
+                                    <td class="w120"><strong>Impact:</strong></td>
+                                    <td id='impact'></td>
+                                </tr>
+                            </table>
+                            <table class="fsTable evenStyle mb15">
+                                <tr>
+                                    <td colspan="2"><strong>Exercise Equipment</strong></td>
+                                </tr>
+                                <tr>
+                                    <td class="w120"><strong>Required:</strong></td>
+                                    <td id='equipment-required'>None</td>
+                                </tr>
+                                <tr>
+                                    <td class="w120"><strong>Recommended:</strong></td>
+                                    <td id='equipment-recommended'>None</td>
+                                </tr>
+                                <tr>
+                                    <td class="w120"><strong>Optional:</strong></td>
+                                    <td id='equipment-optional'>None</td>
+                                </tr>
+                            </table>
+                            <table class="fsTable evenStyle">
+                                <tr>
+                                    <td colspan="2"><strong>Notes</strong></td>
+                                </tr>
+                                <tr class="hideInmember">
+                                    <td class="w120"><strong>Admin Note:</strong></td>
+                                    <td id='note-admin'></td>
+                                </tr>
+                                <tr class="hideInmember">
+                                    <td class="w120"><strong>Trainer Note:</strong></td>
+                                    <td id='note-trainer'></td>
+                                </tr>
+                                <tr>
+                                    <td class="w120"><strong>Member Note:</strong></td>
+                                    <td id='note-member'></td>
+                                </tr>
+                            </table>
+                        </div>
+                    </fieldset>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-sm btn-secondary" data-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Message Modal -->
+    <div class="modal fade" id="messageModal">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Messages</h5>
+                    <button type="button" id="closeMessageChatBtn" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="h100p message dflxDiv flxcolumn pt-3">
+                        <div class="list-group receive-message ovyA flx1" id="receive-message"></div>
+                        <div class="dflxDiv">
+                            <button class="btn btn-secondary btn-sm mlr2 jsSendBtn" type="button" data-val="Yes">Yes</button>
+                            <button class="btn btn-secondary btn-sm mlr2 jsSendBtn" type="button" data-val="No">No</button>
+                            <button class="btn btn-secondary btn-sm mlr2 jsSendBtn" type="button" data-val="Got It">Got It</button>
+                        </div>
+                        <textarea class="form-control shadow-none" id="send-message" rows="1" placeholder="Type a message"></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="waitingModal">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Switching mode...</h5>
+                </div>
+                <div class="modal-body">
+                    <div id="progress-authenticate" class="w-100 progress">
+                        <div class="w-100 progress-bar progress-bar-striped progress-bar-animated" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Device management and preview Modal -->
+    <div class="modal fade" id="hardwareSetupModal">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <div class="dflxDiv jcSB aiCenter w-100">
+                        <h5 class="modal-title flxg2 text-center">Select Devices</h5>
+                        <button type="button" class="btn-close close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="modal-body">
+                </div>
+                <div class="modal-footer">
+                    <div class="dflxDiv jcSB aiCenter jsFooterBase">
+                        <div class="btnbase">
+                            <button type="button" class="btn-close btn btn-sm btn-theme">Save</button>
+                            <button type="button" class="btn-close btn btn-sm btn-secondary" data-dismiss="modal">Close</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>    
+
+    <!-- Initialization Modal -->
+    <div class="loadingDiv" id="jsLoadingDiv">
+        <div class="loaderBody" loding-title="Loading...">
+            <div class="loader mr15">
+                <div class="loadingbase1"></div>
+                <div class="loadingbase2"></div>
+                <div class="loadingbase3"></div>
+            </div>
+            <div>Please wait while we open and setup the workout room.</div>
+        </div>
+    </div>  
+
+    <!-- Heartrate Modal -->
+    <div class="modal greyTheme fade" id="heartrateModal" role="dialog">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header nopad">
+                    <div class="heartrateHeader">
+                        <div class="imgPart">
+                            <img src="https://trainingroomfiles.s3-us-west-2.amazonaws.com/heartrate/apple_watch.png" alt="Apple Watch" />
+                        </div>
+                        <div class="contPart dflxDiv flxdcol jcCenter flxg2">
+                            <p class="text-center"><strong>Heart rate shows on screen by using your</strong></p>
+                            <h5 class="text-center">Apple Watch or Samsung Watch</h5>
+                            <div class="dflxDiv jcCenter">
+                                <div class="dflxDiv aiCenter">
+                                    <strong class="mr5">Calculated: from Birthday</strong>
+                                    <div class="date_pick linkInterface mr10">
+                                        <div data-target="#BirthDate" class="ageText jsAge"></div>
+                                        <input value="" class="form-control" id="BirthDate" field-name="BirthDate" name="BirthDate" readonly="readonly" type="text" />
+                                    </div>
+                                    <a href="javascript:void(0);" class="jsEdit btn btn-circle btn-theme w25 fz13" data-toggle="tooltip" field-name="BirthDate" title="Edit"><i class="fa fa-edit"></i></a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="imgPart">
+                            <img src="https://trainingroomfiles.s3-us-west-2.amazonaws.com/heartrate/samsung_watch.png" alt="Samsung Watch" />
+                        </div>
+                    </div>
+                    <button type="button" class="iClose" data-dismiss="modal" aria-label="Close"><span></span></button>
+                </div>
+                <div class="modal-body"></div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

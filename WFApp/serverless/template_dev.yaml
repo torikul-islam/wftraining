@@ -1,0 +1,839 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: 'AWS::Serverless-2016-10-31'
+Description: Webfitness Trainingroom for development
+Parameters:
+  ECSTaskCpu:
+    Type: Number
+    Default: 4096
+  ECSTaskMemory:
+    Type: Number
+    Default: 8192
+  ECSContainerName:
+    Type: String
+    Default: 'wf-dev-container'
+  ECSContainerCpu:
+    Type: Number
+    Default: 4096
+  ECSContainerMemory:
+    Type: Number
+    Default: 8192
+  ECSContainerMemoryReservation:
+    Type: Number
+    Default: 8192
+  EcsClusterName:
+    Type: String
+    Description: 'Specifies the ECS Cluster Name with which the resources would be associated'
+    Default: 'WfDevBotEC2Cluster'
+  ECRDockerImageArn:
+    Type: String
+    Description: 'ARN of the docker image stored in ECR along with the tag'
+  EcsAsgMinSize:
+    Type: Number
+    Default: 1
+  EcsAsgMaxSize:
+    Type: Number
+    Default: 5
+  DesiredCapacity:
+    Type: Number
+    Default: 1
+    Description: Number of instances to launch in your ECS cluster.
+  ImageId:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Description: Use an Image from SSM Parameter Store
+    Default: /aws/service/ecs/optimized-ami/amazon-linux-2/recommended/image_id
+  InstanceType:
+    Description: EC2 instance type
+    Type: String
+    Default: t3.xlarge
+    AllowedValues: [mt2.large, t2.xlarge, t2.2xlarge, t3.large, t3.xlarge, t3.2xlarge, m4.large, m4.xlarge, 
+    m4.2xlarge, m4.4xlarge, m5.large, m5.xlarge, m5.2xlarge, m5.4xlarge, m5.8xlarge, c4.xlarge, c4.2xlarge, 
+    c4.4xlarge, c5.large, c5.xlarge, c5.2xlarge, c5.4xlarge]
+    ConstraintDescription: Please choose a valid instance type.
+  WfDevBotLogGroupName:
+    Type: String
+    Default: WfDevBotLogGroup
+  EnvironmentName:
+    Description: An environment name that is prefixed to resource names
+    Type: String
+    Default: wf-dev-environment
+  VpcCIDR:
+    Description: Please enter the IP range (CIDR notation) for this VPC
+    Type: String
+    Default: 10.192.0.0/16
+  PublicSubnet1CIDR:
+    Description: Please enter the IP range (CIDR notation) for the public subnet in the first Availability Zone
+    Type: String
+    Default: 10.192.10.0/24
+  PublicSubnet2CIDR:
+    Description: Please enter the IP range (CIDR notation) for the public subnet in the second Availability Zone
+    Type: String
+    Default: 10.192.11.0/24
+  UseEventBridge:
+    Description: Use EventBridge to process server side notifications
+    Default: false
+    Type: String
+    AllowedValues: [true, false]
+  WfRecordingUploadBucket:
+    Type: String
+    Description: 'Specifies the Recording Bucket Name'
+    Default: 'wf-dev-video'
+  ChimeEndpoint:
+    Description: The AWS SDK Chime endpoint
+    Default: "https://service.chime.aws.amazon.com"
+    Type: String
+Conditions:
+  ShouldUseEventBridge: !Equals [true, !Ref UseEventBridge]
+Globals:
+  Function:
+    Runtime: nodejs20.x
+    Timeout: 30
+    MemorySize: 128
+    Environment:
+      Variables:
+        MEETINGS_TABLE_NAME: !Ref Meetings
+        SQS_QUEUE_ARN: !GetAtt MeetingNotificationsQueue.Arn
+        BROWSER_LOG_GROUP_NAME: !Ref ChimeBrowserLogs
+        BROWSER_MEETING_EVENT_LOG_GROUP_NAME: !Ref ChimeBrowserMeetingEventLogs
+        CHIME_ENDPOINT: !Ref ChimeEndpoint
+Resources:
+  WfDevBotArtifactsUploadBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+        AccessControl: BucketOwnerFullControl
+        BucketName:
+          Fn::Join: ['', ['wf-dev-chime-', {Ref: 'AWS::AccountId'}, '-', {Ref: 'AWS::Region'}, '-recordings']]
+  WfDevBotLambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+        ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/CloudWatchLogsFullAccess'
+        - 'arn:aws:iam::aws:policy/AmazonECS_FullAccess'
+        AssumeRolePolicyDocument:
+            Statement:
+            - Action: ['sts:AssumeRole']
+              Effect: Allow
+              Principal:
+                Service: [lambda.amazonaws.com]
+            Version: '2012-10-17'
+  
+  WfDevBotBuildDeployGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: 
+        Ref: WfDevBotLogGroupName
+      RetentionInDays: 365
+  
+  WfDevBotLambdaFunction:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      FunctionName: WfDevBotLambda
+      Description: Lambda to interact with ECS for starting and stopping bot.
+      Handler: handlers.botHandler
+      Role: 
+        Fn::GetAtt: [WfDevBotLambdaExecutionRole, Arn]
+      Runtime: nodejs20.x
+      Timeout: 300
+      MemorySize: 3008
+      Environment:
+        Variables:
+          ecsClusterArn:
+            Fn::GetAtt: [ECSCluster, Arn]
+          ecsContainerName: 
+            Ref: ECSContainerName
+          ecsTaskDefinationArn: 
+            Ref: ECSWfDevBotTaskDefinition
+          botArtifactsBucket:
+            Ref: WfDevBotArtifactsUploadBucket
+      CodeUri: src/
+      Events:
+        Api1:
+          Type: Api
+          Properties:
+            Path: /bothandler
+            Method: POST
+  
+  ECSWfDevBotTaskDefinition:
+    Type: 'AWS::ECS::TaskDefinition'
+    Properties:
+        Cpu: 
+            Ref: ECSTaskCpu
+        Memory: 
+            Ref: ECSTaskMemory
+        RequiresCompatibilities:
+            - EC2
+        Volumes:
+            - Name: 'dbus'
+              Host:
+                SourcePath: '/run/dbus/system_bus_socket:/run/dbus/system_bus_socket'
+        ContainerDefinitions:
+            - Name: 
+                Ref: ECSContainerName
+              Cpu: 
+                Ref: ECSContainerCpu
+              Memory: 
+                Ref: ECSContainerMemory
+              MemoryReservation: 
+                Ref: ECSContainerMemoryReservation
+              Essential: true
+              Image:
+                Ref: ECRDockerImageArn
+              LogConfiguration:
+                LogDriver: awslogs
+                Options:
+                  awslogs-group:
+                    Ref: WfDevBotBuildDeployGroup
+                  awslogs-region:
+                    Ref: AWS::Region
+                  awslogs-stream-prefix:
+                    Ref: ECSContainerName
+              LinuxParameters:
+                SharedMemorySize: 2048
+
+  ECSCluster:
+    Type: 'AWS::ECS::Cluster'
+    Properties:
+        ClusterName: 
+            Ref: EcsClusterName
+# Refer: https://docs.aws.amazon.com/codebuild/latest/userguide/cloudformation-vpc-template.html
+  
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref VpcCIDR
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      InstanceTenancy: default
+      Tags:
+        - Key: Name
+          Value: !Ref EnvironmentName
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Ref EnvironmentName
+  InternetGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      InternetGatewayId: !Ref InternetGateway
+      VpcId: !Ref VPC
+  PublicSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Select [ 0, !GetAZs '' ]
+      CidrBlock: !Ref PublicSubnet1CIDR
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName} Public Subnet (AZ1)
+  PublicSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Select [ 1, !GetAZs  '' ]
+      CidrBlock: !Ref PublicSubnet2CIDR
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName} Public Subnet 
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName} Public Routes
+  DefaultPublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: InternetGatewayAttachment
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+  
+  PublicSubnet1RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref PublicSubnet1
+
+  PublicSubnet2RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref PublicSubnet2
+  EcsSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+        GroupDescription: ECS Security Group
+        VpcId: !Ref VPC
+  EcsSecurityGroupHTTPinbound:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+        GroupId: !Ref EcsSecurityGroup
+        IpProtocol: tcp
+        FromPort: '80'
+        ToPort: '80'
+        CidrIp: 0.0.0.0/0
+  EcsSecurityGroupSSHinbound:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+        GroupId: !Ref EcsSecurityGroup
+        IpProtocol: tcp
+        FromPort: '22'
+        ToPort: '22'
+        CidrIp: 0.0.0.0/0
+  EcsSecurityGroupALBports:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+        GroupId: !Ref EcsSecurityGroup
+        IpProtocol: tcp
+        FromPort: '31000'
+        ToPort: '61000'
+        SourceSecurityGroupId: !Ref EcsSecurityGroup
+  CloudwatchLogsGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+        LogGroupName: !Join ['-', [ECSLogGroup, !Ref AWS::StackName]]
+        RetentionInDays: 14
+        
+  ECSAutoScalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      VPCZoneIdentifier: 
+      - !Ref PublicSubnet1
+      - !Ref PublicSubnet2
+      LaunchConfigurationName: !Ref ContainerInstances
+      MinSize: '1'
+      MaxSize: !Ref EcsAsgMaxSize
+      DesiredCapacity: !Ref DesiredCapacity
+    CreationPolicy:
+      ResourceSignal:
+        Timeout: PT15M
+    UpdatePolicy:
+      AutoScalingReplacingUpdate:
+        WillReplace: 'true'
+
+  ContainerInstances:
+    Type: AWS::AutoScaling::LaunchConfiguration
+    Properties:
+      ImageId: !Ref ImageId
+      SecurityGroups: [!Ref EcsSecurityGroup]
+      InstanceType: !Ref InstanceType
+      IamInstanceProfile: !Ref EC2InstanceProfile
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash -xe
+          echo ECS_CLUSTER=${ECSCluster} >> /etc/ecs/ecs.config
+          echo ECS_IMAGE_PULL_BEHAVIOR=prefer-cached >> /etc/ecs/ecs.config
+          yum install -y aws-cfn-bootstrap
+          /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource ECSAutoScalingGroup --region ${AWS::Region}
+  EC2InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Path: /
+      Roles: [!Ref EC2Role]
+  EC2Role:
+    Type: AWS::IAM::Role
+    Properties:
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/CloudWatchLogsFullAccess'
+        - 'arn:aws:iam::aws:policy/AmazonECS_FullAccess'
+        - 'arn:aws:iam::aws:policy/AmazonS3FullAccess'
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: [ec2.amazonaws.com]
+          Action: ['sts:AssumeRole']
+      Path: /
+      Policies:
+      - PolicyName: ecs-service
+        PolicyDocument:
+          Statement:
+          - Effect: Allow
+            Action: ['ecs:CreateCluster', 'ecs:DeregisterContainerInstance', 'ecs:DiscoverPollEndpoint',
+              'ecs:Poll', 'ecs:RegisterContainerInstance', 'ecs:StartTelemetrySession',
+              'ecs:Submit*', 'logs:CreateLogStream', 'logs:PutLogEvents', 'ecr:GetAuthorizationToken', 
+              'ecr:BatchCheckLayerAvailability', 'ecr:BatchGetImage', 'ecr:GetDownloadUrlForLayer']
+            Resource: '*'
+
+
+
+
+  ChimeMeetingsAccessPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: ChimeMeetingsAccess
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - 'chime:CreateMeeting'
+              - 'chime:TagMeeting'
+              - 'chime:TagResource'
+              - 'chime:DeleteMeeting'
+              - 'chime:GetMeeting'
+              - 'chime:ListMeetings'
+              - 'chime:BatchCreateAttendee'
+              - 'chime:CreateAttendee'
+              - 'chime:DeleteAttendee'
+              - 'chime:GetAttendee'
+              - 'chime:ListAttendees'
+            Resource: '*'
+      Roles:
+        - Ref: ChimeSdkJoinLambdaRole
+        - Ref: ChimeSdkEndLambdaRole
+  ChimeMessagingAccessPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: ChimeMeetingsAccess
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - 'chime:Connect'
+              - 'chime:GetMessagingSessionEndpoint'
+            Resource: '*'
+      Roles:
+        - Ref: ChimeSdkBrowserFetchCredentialsLambdaRole
+  CloudWatchAccessPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: CloudWatchAccess
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - 'logs:CreateLogStream'
+              - 'logs:PutLogEvents'
+              - 'logs:DescribeLogStreams'
+            Resource: '*'
+      Roles:
+        - Ref: ChimeSdkBrowserLogsLambdaRole
+        - Ref: ChimeSdkBrowserMeetingEventLogsLambdaRole
+        - Ref: ChimeSdkBrowserCreateLogStreamLambdaRole
+        - Ref: ChimeSdkBrowserCreateBrowserEventLogStreamLambdaRole
+  Meetings:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: "Title"
+          AttributeType: "S"
+        - AttributeName: "Passcode"
+          AttributeType: "S"
+      BillingMode: PAY_PER_REQUEST
+      KeySchema:
+        - AttributeName: "Title"
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: "Passcode"
+          KeySchema:
+            - AttributeName: "Passcode"
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+      TimeToLiveSpecification:
+        AttributeName: "TTL"
+        Enabled: true
+  MeetingNotificationsQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      KmsMasterKeyId: 'alias/aws/sqs'
+  ChimeSdkIndexLambda:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      Handler: handlers.indexWorkout
+      Runtime: nodejs20.x
+      CodeUri: src/
+      Events:
+        Api1:
+          Type: Api
+          Properties:
+            Path: /
+            Method: GET
+  ChimeSdkIndexWorkoutLambda:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      Handler: handlers.indexWorkout
+      Runtime: nodejs20.x
+      CodeUri: src/
+      Events:
+        Api1:
+          Type: Api
+          Properties:
+            Path: /workout/
+            Method: GET
+  ChimeSdkIndexV2Lambda:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      Handler: handlers.indexWorkout
+      Runtime: nodejs20.x
+      CodeUri: src/
+      Events:
+        Api1:
+          Type: Api
+          Properties:
+            Path: /member/
+            Method: GET
+  ChimeSdkIndexBotLambda:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      Handler: handlers.indexBot
+      Runtime: nodejs20.x
+      CodeUri: src/
+      Events:
+        Api1:
+          Type: Api
+          Properties:
+            Path: /bot/
+            Method: GET
+  ChimeSdkJoinLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: handlers.join
+      CodeUri: src/
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref Meetings
+      Environment:
+        Variables:
+          USE_EVENT_BRIDGE: !Ref UseEventBridge
+      Events:
+        Api1:
+          Type: Api
+          Properties:
+            Path: /join
+            Method: POST
+  ChimeSdkEndLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: handlers.end
+      CodeUri: src/
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref Meetings
+      Events:
+        Api1:
+          Type: Api
+          Properties:
+            Path: /end
+            Method: POST
+  ChimeSdkInitializeMultipartUploadLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: handlers.initializeMultipartUpload
+      CodeUri: src/
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref Meetings
+      Environment:
+        Variables:
+          USE_EVENT_BRIDGE: !Ref UseEventBridge
+          RecordingBucket: 
+            Ref: WfRecordingUploadBucket
+      Events:
+        Api1:
+          Type: Api
+          Properties:
+            Path: /initializeMultipartUpload
+            Method: POST
+  ChimeSdkGetMultipartPreSignedUrlsLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: handlers.getMultipartPreSignedUrls
+      CodeUri: src/
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref Meetings
+      Environment:
+        Variables:
+          USE_EVENT_BRIDGE: !Ref UseEventBridge
+          RecordingBucket: 
+            Ref: WfRecordingUploadBucket
+      Events:
+        Api1:
+          Type: Api
+          Properties:
+            Path: /getMultipartPreSignedUrls
+            Method: POST
+  ChimeSdkFinalizeMultipartUploadLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: handlers.finalizeMultipartUpload
+      CodeUri: src/
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref Meetings
+      Environment:
+        Variables:
+          USE_EVENT_BRIDGE: !Ref UseEventBridge
+          RecordingBucket: 
+            Ref: WfRecordingUploadBucket
+      Events:
+        Api1:
+          Type: Api
+          Properties:
+            Path: /finalizeMultipartUpload
+            Method: POST
+  ChimeSQSQueueLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: handlers.sqs_handler
+      CodeUri: src/
+      Events:
+        MeetingNotificationsEvent:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt MeetingNotificationsQueue.Arn
+            BatchSize: 10
+  ChimeEventBridgeLambda:
+    Type: AWS::Serverless::Function
+    Condition: ShouldUseEventBridge
+    Properties:
+      Handler: handlers.event_bridge_handler
+      CodeUri: src/
+      Events:
+        ChimeEventBridgeEvent:
+          Type: CloudWatchEvent
+          Properties:
+            Pattern:
+              source:
+                - aws.chime
+              detail-type:
+                - "Chime Meeting State Change"
+  ChimeSdkBrowserLogsLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: handlers.logs
+      CodeUri: src/
+      Events:
+        Api1:
+          Type: Api
+          Properties:
+            Path: /logs
+            Method: POST
+  ChimeSdkBrowserMeetingEventLogsLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: handlers.log_meeting_event
+      CodeUri: src/
+      Events:
+        Api1:
+          Type: Api
+          Properties:
+            Path: /log_meeting_event
+            Method: POST
+  ChimeSdkBrowserCreateLogStreamLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: handlers.create_log_stream
+      CodeUri: src/
+      Events:
+        Api1:
+          Type: Api
+          Properties:
+            Path: /create_log_stream
+            Method: POST
+  ChimeSdkBrowserCreateBrowserEventLogStreamLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: handlers.create_browser_event_log_stream
+      CodeUri: src/
+      Events:
+        Api1:
+          Type: Api
+          Properties:
+            Path: /create_browser_event_log_stream
+            Method: POST
+  ChimeSdkBrowserFetchCredentialsLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: handlers.fetch_credentials
+      CodeUri: src/
+      Events:
+        Api1:
+          Type: Api
+          Properties:
+            Path: /fetch_credentials
+            Method: GET
+  ChimeNotificationsQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - sqs:SendMessage
+              - sqs:GetQueueUrl
+            Principal:
+              Service:
+                - chime.amazonaws.com
+            Resource: !GetAtt MeetingNotificationsQueue.Arn
+      Queues:
+        - Ref: MeetingNotificationsQueue
+  ChimeBrowserLogs:
+    Type: AWS::Logs::LogGroup
+  ChimeBrowserMeetingEventLogs:
+    Type: AWS::Logs::LogGroup
+  ChimeSdkBrowserMeetingEventDashboard:
+    Type: AWS::CloudWatch::Dashboard
+    Properties:
+      DashboardBody: !Sub
+        - >
+          {
+            "widgets": [
+                {
+                    "type": "log",
+                    "x": 0,
+                    "y": 12,
+                    "width": 12,
+                    "height": 6,
+                    "properties": {
+                        "query": "SOURCE \"${Source}\" | filter name in [\"meetingStartSucceeded\", \"meetingStartFailed\"]\n| stats count(*) as meetingJoin by name",
+                        "region": "us-east-1",
+                        "stacked": false,
+                        "title": "Meeting join success rate",
+                        "view": "pie"
+                    }
+                },
+                {
+                    "type": "log",
+                    "x": 0,
+                    "y": 6,
+                    "width": 12,
+                    "height": 6,
+                    "properties": {
+                        "query": "SOURCE \"${Source}\" | fields @timestamp, @message\n| filter name in [\"meetingStartRequested\"]\n| stats count(*) as startRequested by attributes.browserName as browser, attributes.browserMajorVersion as version\n| sort startRequested desc\n| limit 10",
+                        "region": "us-east-1",
+                        "stacked": false,
+                        "title": "Top 10 browsers",
+                        "view": "table"
+                    }
+                },
+                {
+                    "type": "log",
+                    "x": 12,
+                    "y": 6,
+                    "width": 12,
+                    "height": 6,
+                    "properties": {
+                        "query": "SOURCE \"${Source}\" | fields @timestamp, @message\n| filter name in [\"meetingStartRequested\"]\n| stats count(*) as startRequested by attributes.osName as operatingSystem\n| sort startRequested desc\n| limit 10",
+                        "region": "us-east-1",
+                        "stacked": false,
+                        "title": "Top 10 operating systems",
+                        "view": "table"
+                    }
+                },
+                {
+                    "type": "log",
+                    "x": 0,
+                    "y": 30,
+                    "width": 24,
+                    "height": 6,
+                    "properties": {
+                        "query": "SOURCE \"${Source}\" | filter name in [\"audioInputFailed\", \"videoInputFailed\"]\n| fields\nfromMillis(@timestamp) as timestamp,\nconcat(attributes.osName, \" \", attributes.osVersion) as operatingSystem,\nconcat(attributes.browserName, \" \", attributes.browserMajorVersion) as browser,\nreplace(name, \"InputFailed\", \"\") as kind,\nconcat(attributes.audioInputErrorMessage, attributes.videoInputErrorMessage) as reason\n| sort @timestamp desc\n",
+                        "region": "us-east-1",
+                        "stacked": false,
+                        "title": "Audio and video input failures",
+                        "view": "table"
+                    }
+                },
+                {
+                    "type": "log",
+                    "x": 0,
+                    "y": 18,
+                    "width": 24,
+                    "height": 6,
+                    "properties": {
+                        "query": "SOURCE \"${Source}\" | filter name in [\"meetingStartFailed\"]\n| fields fromMillis(@timestamp) as timestamp,\nconcat(attributes.osName, \" \", attributes.osVersion) as operatingSystem,\nconcat(attributes.browserName, \" \", attributes.browserMajorVersion) as browser,\nattributes.meetingStatus as failedStatus,\nconcat(attributes.signalingOpenDurationMs / 1000, \"s\")  as signalingOpenDurationMs,\nattributes.retryCount as retryCount\n| sort @timestamp desc\n",
+                        "region": "us-east-1",
+                        "stacked": false,
+                        "title": "Meeting join failures",
+                        "view": "table"
+                    }
+                },
+                {
+                    "type": "log",
+                    "x": 0,
+                    "y": 24,
+                    "width": 24,
+                    "height": 6,
+                    "properties": {
+                        "query": "SOURCE \"${Source}\" | filter name in [\"meetingFailed\"]\n| fields\nfromMillis(@timestamp) as timestamp,\nconcat(attributes.osName, \" \", attributes.osVersion) as operatingSystem,\nconcat(attributes.browserName, \" \", attributes.browserMajorVersion) as browser,\nattributes.meetingStatus as failedStatus,\nconcat(attributes.meetingDurationMs / 1000, \"s\") as meetingDurationMs,\nattributes.retryCount as retryCount,\nattributes.poorConnectionCount as poorConnectionCount\n| sort @timestamp desc\n",
+                        "region": "us-east-1",
+                        "stacked": false,
+                        "title": "Dropped attendees",
+                        "view": "table"
+                    }
+                },
+                {
+                    "type": "log",
+                    "x": 12,
+                    "y": 0,
+                    "width": 12,
+                    "height": 6,
+                    "properties": {
+                        "query": "SOURCE \"${Source}\" | filter name in [\"meetingStartRequested\"]\n| stats count(*) as startRequested by attributes.sdkName as SDK, attributes.sdkVersion as version",
+                        "region": "us-east-1",
+                        "stacked": false,
+                        "title": "SDK versions",
+                        "view": "table"
+                    }
+                },
+                {
+                    "type": "log",
+                    "x": 0,
+                    "y": 0,
+                    "width": 12,
+                    "height": 6,
+                    "properties": {
+                        "query": "SOURCE \"${Source}\" | filter name in [\"meetingStartRequested\"]\n| stats count(*) as platform by attributes.sdkName",
+                        "region": "us-east-1",
+                        "stacked": false,
+                        "title": "SDK platforms (JavaScript, iOS, and Android)",
+                        "view": "pie"
+                    }
+                },
+                {
+                    "type": "text",
+                    "x": 0,
+                    "y": 36,
+                    "width": 24,
+                    "height": 12,
+                    "properties": {
+                        "markdown": "\n## How to search events for a specific attendee?\n\nThe Chime SDK serverless demo uses Amazon CloudWatch Logs Insights to search and analyze SDK events. You can view trends in the types of failures and identify where your attendees drop off.\n\n1. Click on the row number (▶) to expand a row.\n2. You can see detailed failure information.\n  - **attributes.meetingErrorMessage** explains the reason for the meeting failure.\n  - **attributes.audioInputErrorMessage** and **attributes.videoInputErrorMessage** indicate problems with the microphone and camera.\n  - **attributes.meetingHistory** shows up to last 15 attendee actions and events.\n3. To view a specific attendee's events, take note of **attributes.attendeeId** and choose **Insights** in the navigation pane.\n4. Select your ChimeBrowserMeetingEventLogs log group that starts with your stack name.\n  ```\n  __your_stack_name__ChimeBrowserMeetingEventLogs-...\n  ```\n5. In the query editor, delete the current contents, enter the following filter function, and then choose **Run query**.\n  ```\n  filter attributes.attendeeId = \"__your_attendee_id__\"\n  ```\n\n  The results show the number of SDK events from device selection to meeting end.\n\n  You can use CloudWatch Logs Insights to count device input errors for platforms, calculate the average value of the signaling connection time, and visualize trends over time. For more information, see [Analyzing Log Data with CloudWatch Logs Insights](https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/AnalyzingLogData.html) in the *AWS CloudWatch Logs User Guide*.\n"
+                    }
+                },
+                {
+                    "type": "log",
+                    "x": 12,
+                    "y": 12,
+                    "width": 12,
+                    "height": 6,
+                    "properties": {
+                        "query": "SOURCE \"${Source}\" | filter name in [\"meetingStartSucceeded\"]\n| stats count(*) as meetingStart by bin(1d) as time\n| sort time asc",
+                        "region": "us-east-1",
+                        "stacked": false,
+                        "title": "Daily attendees who joined a meeting",
+                        "view": "bar"
+                    }
+                }
+            ]
+          }
+        - { Source: !Ref ChimeBrowserMeetingEventLogs }
+Outputs:
+  ApiURL:
+    Description: "API endpoint URL for Prod environment"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
+  AutoScalingGroupName:
+    Description: "Name of the AWS AutoScalingGroup created as part of this deployment"
+    Value: !Ref ECSAutoScalingGroup
+  ECSClusterName:
+    Description: "Name of the AWS ECS cluster created as part of this deployment"
+    Value: !Ref ECSCluster

@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <link rel="shortcut icon" href="data:image/x-icon;," type="image/x-icon">
+  <link href="https://use.typekit.net/nyt6vlx.css" rel="stylesheet" />
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+  <title>Bot</title>
+</head>
+<body class="bot">
+<div id="flow-failed-meeting" class="flow">
+  <div class="container">
+    <form id="form-failed-meeting">
+      <div class="card border-warning mb-3" style="max-width: 20rem;">
+        <div id="failed-meeting" class="card-header"></div>
+        <div class="card-body">
+          <h4 id="failed-meeting-title" class="card-title">Unable to find meeting</h4>
+          <p id="failed-meeting-text" class="card-text">There was an issue finding that meeting. The meeting may have already ended, or your authorization may have expired.</p>
+          <small id="failed-meeting-error" class="text-muted"></small>
+        </div>
+      </div>
+      <button class="btn btn-lg btn-outline-warning btn-block" type="submit">OK</button>
+    </form>
+  </div>
+</div>
+
+<!-- In-meeting screen -->
+<div id="flow-meeting" class="flow w100p h100p">
+  <div style="display:none">
+    <img crossOrigin="anonymous" id="bottom_of_video" src="https://trainingroomfiles.s3-us-west-2.amazonaws.com/bottom.png"  style="display:none"></img>
+    <img crossOrigin="anonymous" id="top_of_video"  style="display:none"></img>
+    <img crossOrigin="anonymous" id="left_right_sign" src="https://trainingroomfiles.s3-us-west-2.amazonaws.com/leftright.png"  style="display:none"></img>
+    <img crossOrigin="anonymous" id="alternate_sign" src="https://trainingroomfiles.s3-us-west-2.amazonaws.com/alternate.png"  style="display:none"></img>
+    <img crossOrigin="anonymous" id="logo" src="https://trainingroomfiles.s3-us-west-2.amazonaws.com/videologo.png"  style="display:none"></img>
+    <img crossOrigin="anonymous" id="whitelogo" src="https://trainingroomfiles.s3-us-west-2.amazonaws.com/whitelogo.png"  style="display:none"></img>
+    <img crossOrigin="anonymous" id="img_bottle"   style="display:none"></img>
+    <img crossOrigin="anonymous" id="img_custom"  style="display:none"></img>
+    
+    <video id="TimerVideo" crossOrigin="anonymous" src="" preload="auto" ></video>
+    <video id="TimerVideoForStretch" crossOrigin="anonymous" src="" preload="auto" ></video>
+    <video id="SpinVideo" crossOrigin="anonymous" src="" preload="auto" ></video>
+    <video id="SpinVideoForStretch" crossOrigin="anonymous" src="" preload="auto" ></video>
+    <video id="CoachVideo" crossOrigin="anonymous" src="" preload="auto" ></video>
+    <video id="NextCoachVideo" crossOrigin="anonymous" src="" preload="auto" ></video>
+
+    <audio id="CoachPreviewAudio" crossOrigin="anonymous" src="" preload="auto" controls></audio>
+
+    <audio id="BlipAudio" crossOrigin="anonymous" src="" preload="auto" controls></audio>
+    <audio id="BongAudio" crossOrigin="anonymous" src=""  preload="auto" controls></audio>
+    <audio id="StretchGongAudio" crossOrigin="anonymous" src=""  preload="auto" controls></audio>
+    <audio id="StretchThumpAudio" crossOrigin="anonymous" src=""  preload="auto" controls></audio>
+    <audio id="BoxingBellAudio" crossOrigin="anonymous" src=""  preload="auto" controls></audio>
+    <audio id="BoxingBellAudio6" crossOrigin="anonymous" src=""  preload="auto" controls></audio>
+    <audio id="WatchTickAudio" crossOrigin="anonymous" src="" preload="auto" controls  loop="true"></audio>
+    <audio id="SwooshLongAudio" crossOrigin="anonymous" src="" preload="auto" controls></audio>
+    <audio id="SwooshShortAudio" crossOrigin="anonymous" src="" preload="auto" controls></audio> 
+
+    <audio  id="Music1" crossOrigin="anonymous" src="" preload="auto" controls loop="true"></audio> 
+    <audio  id="Music2" crossOrigin="anonymous" src="" preload="auto" controls loop="true"></audio>                                 
+  </div>
+    <audio id="meeting-audio" style="display:none"></audio>
+    <div id="meeting-container" class="w100p h100p">
+      <canvas crossOrigin="anonymous" id="trainVideoCanvas" style="width:324px;height:576px"></canvas>
+      <video crossOrigin="anonymous" id="content-share-video" style="display:none" preload = "auto" style="display:block" ></video>
+      <video crossOrigin="anonymous" id="content-share-next-video" style="display:none" preload = "auto" style="display:block"></video>
+    </div>
+</div>
+</body>
+</html>

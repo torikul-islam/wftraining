@@ -1,0 +1,95 @@
+{
+  "_args": [
+    [
+      "aws-embedded-metrics@2.0.2",
+      "G:\\john\\Chime_WFTrainingRoom\\demo\\amazon-chime-sdk-js\\demos\\serverless"
+    ]
+  ],
+  "_from": "aws-embedded-metrics@2.0.2",
+  "_id": "aws-embedded-metrics@2.0.2",
+  "_inBundle": false,
+  "_integrity": "sha512-Nx1H+V6qtkMD2mR/jTiMvwHbbOkV5sMtjf3TgSFtzTMve0eUgUqGURHcuIf6o1/JdYdkoB+o+FY1kOh62qo+kw==",
+  "_location": "/aws-embedded-metrics",
+  "_phantomChildren": {},
+  "_requested": {
+    "type": "version",
+    "registry": true,
+    "raw": "aws-embedded-metrics@2.0.2",
+    "name": "aws-embedded-metrics",
+    "escapedName": "aws-embedded-metrics",
+    "rawSpec": "2.0.2",
+    "saveSpec": null,
+    "fetchSpec": "2.0.2"
+  },
+  "_requiredBy": [
+    "/"
+  ],
+  "_resolved": "https://registry.npmjs.org/aws-embedded-metrics/-/aws-embedded-metrics-2.0.2.tgz",
+  "_spec": "2.0.2",
+  "_where": "G:\\john\\Chime_WFTrainingRoom\\demo\\amazon-chime-sdk-js\\demos\\serverless",
+  "author": {
+    "name": "Amazon Web Services"
+  },
+  "bugs": {
+    "url": "https://github.com/awslabs/aws-embedded-metrics-node/issues"
+  },
+  "contributors": [
+    {
+      "name": "Jared Nance",
+      "email": "jarnance@amazon.com"
+    }
+  ],
+  "dependencies": {},
+  "description": "AWS Embedded Metrics Client Library",
+  "devDependencies": {
+    "@types/faker": "^4.1.5",
+    "@types/jest": "^24.0.15",
+    "@types/node": "^12.0.8",
+    "@typescript-eslint/eslint-plugin": "^2.23.0",
+    "@typescript-eslint/parser": "^2.23.0",
+    "aws-sdk": "^2.551.0",
+    "eslint": "^6.8.0",
+    "eslint-config-prettier": "^6.10.0",
+    "eslint-plugin-prettier": "^3.1.2",
+    "faker": "^4.1.0",
+    "jest": "^24.8.0",
+    "npm-pack-zip": "^1.2.7",
+    "prettier": "^1.19.1",
+    "ts-jest": "^26.1.1",
+    "typescript": "^3.8.0"
+  },
+  "engines": {
+    "node": ">=10.0.0"
+  },
+  "files": [
+    "lib/**/*"
+  ],
+  "homepage": "https://github.com/awslabs/aws-embedded-metrics-node#readme",
+  "keywords": [],
+  "license": "Apache-2.0",
+  "main": "lib/index.js",
+  "name": "aws-embedded-metrics",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/awslabs/aws-embedded-metrics-node.git"
+  },
+  "scripts": {
+    "build": "tsc",
+    "exec-integ": "jest --config jestconfig.integ.json",
+    "fix-lint": "npm run format && eslint --fix \"{src,test}/**/*.ts\"",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "integ": "./bin/run-integ-tests.sh",
+    "lint": "eslint \"{src,test}/**/*.ts\"",
+    "prepare": "npm run build",
+    "prepublishOnly": "npm test && npm run lint",
+    "preversion": "npm run lint",
+    "test": "jest --runInBand --detectOpenHandles --config jestconfig.json",
+    "version": "npm run format",
+    "watch": "npm run test -- --watch"
+  },
+  "types": "lib/index.d.ts",
+  "version": "2.0.2",
+  "volta": {
+    "node": "10.16.0"
+  }
+}
